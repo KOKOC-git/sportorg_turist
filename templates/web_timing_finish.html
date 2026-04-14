@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Finish timing</title>
+<meta name="theme-color" content="#0f62fe">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/pwa-icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));}</script>
+
+<style>
+body{font-family:Arial,sans-serif;margin:20px;background:#f5f5f5}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+#participants{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;cursor:pointer}
+.card:hover{background:#eef6ff}
+.meta{color:#666;font-size:12px}
+#log{margin-top:18px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px}
+</style>
+</head>
+<body>
+<header>
+<div style="font-size:24px;font-weight:bold">Финиш</div>
+<div id="clock"></div>
+</header>
+<div style="margin-bottom:16px">
+<label>Поиск:
+<input id="search" placeholder="номер или фамилия">
+</label>
+</div>
+<div id="participants"></div>
+<div id="log"><b>Последние финиши</b><div id="logItems"></div></div>
+<script>
+let participants=[];
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('ru-RU');}
+setInterval(tick,1000);tick();
+async function loadData(){
+  participants = await fetch('/api/participants').then(r=>r.json());
+  renderParticipants();
+  loadLog();
+}
+function renderParticipants(){
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  const root=document.getElementById('participants'); root.innerHTML='';
+  participants.filter(p=>!q||String(p.bib).includes(q)||p.name.toLowerCase().includes(q)).forEach(p=>{
+    const d=document.createElement('div'); d.className='card';
+    d.innerHTML=`<div><b>${p.bib}</b> — ${p.name}</div><div class="meta">${p.group} | ${p.organization}</div>`;
+    d.onclick=()=>markFinish(p.id);
+    root.appendChild(d);
+  });
+}
+async function markFinish(personId){
+  const res=await fetch('/api/finish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({person_id:personId})});
+  const data=await res.json();
+  if(!data.ok){alert(data.error || 'Ошибка');}
+  loadLog();
+}
+async function loadLog(){
+  const items=await fetch('/api/finish-log').then(r=>r.json());
+  const root=document.getElementById('logItems'); root.innerHTML='';
+  items.slice().reverse().forEach(i=>{
+    const d=document.createElement('div');
+    d.textContent=`${i.time} — ${i.bib} ${i.name}`;
+    root.appendChild(d);
+  })
+}
+document.getElementById('search').addEventListener('input', renderParticipants);
+setInterval(loadLog,3000);
+loadData();
+</script>
+</body>
+</html>

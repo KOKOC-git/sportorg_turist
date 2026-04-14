@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Stage timing</title>
+<meta name="theme-color" content="#0f62fe">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/pwa-icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));}</script>
+
+<style>
+body{font-family:Arial,sans-serif;margin:20px;background:#f5f5f5}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+#stageTitle{font-size:24px;font-weight:bold}
+.controls{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+#participants{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;cursor:pointer}
+.card:hover{background:#eef6ff}
+.meta{color:#666;font-size:12px}
+#log{margin-top:18px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px}
+</style>
+</head>
+<body>
+<header>
+<div id="stageTitle">Этапный тайминг</div>
+<div id="clock"></div>
+</header>
+<div class="controls">
+<label>Этап:
+<select id="stage"></select>
+</label>
+<label>Поиск:
+<input id="search" placeholder="номер или фамилия">
+</label>
+</div>
+<div id="participants"></div>
+<div id="log"><b>Последние отметки</b><div id="logItems"></div></div>
+<script>
+let participants=[];
+let stages=[];
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('ru-RU');}
+setInterval(tick,1000);tick();
+async function loadData(){
+  participants = await fetch('/api/participants').then(r=>r.json());
+  stages = await fetch('/api/stages').then(r=>r.json());
+  const sel = document.getElementById('stage');
+  sel.innerHTML='';
+  stages.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=`${s.order_num}. ${s.name}`;sel.appendChild(o)});
+  updateStageTitle();
+  renderParticipants();
+  loadLog();
+}
+function updateStageTitle(){
+  const sel=document.getElementById('stage');
+  const txt=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].textContent:'Этап не выбран';
+  document.getElementById('stageTitle').textContent='Текущий этап: '+txt;
+}
+function renderParticipants(){
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  const root=document.getElementById('participants'); root.innerHTML='';
+  participants.filter(p=>!q||String(p.bib).includes(q)||p.name.toLowerCase().includes(q)).forEach(p=>{
+    const d=document.createElement('div'); d.className='card';
+    d.innerHTML=`<div><b>${p.bib}</b> — ${p.name}</div><div class="meta">${p.group} | ${p.organization}</div>`;
+    d.onclick=()=>markStage(p.id);
+    root.appendChild(d);
+  });
+}
+async function markStage(personId){
+  const stageId=document.getElementById('stage').value;
+  if(!stageId){alert('Выберите этап'); return;}
+  await fetch('/api/stage-pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({person_id:personId,stage_id:stageId})});
+  loadLog();
+}
+async function loadLog(){
+  const items=await fetch('/api/stage-log').then(r=>r.json());
+  const root=document.getElementById('logItems'); root.innerHTML='';
+  items.slice().reverse().forEach(i=>{
+    const d=document.createElement('div');
+    d.textContent=`${i.timestamp_text} — ${i.bib} ${i.person_name} — ${i.stage_name}${i.is_valid_for_group ? '' : ' [этап не для группы]'}`;
+    root.appendChild(d);
+  })
+}
+document.getElementById('search').addEventListener('input', renderParticipants);
+document.getElementById('stage').addEventListener('change', updateStageTitle);
+setInterval(loadLog,3000);
+loadData();
+</script>
+</body>
+</html>

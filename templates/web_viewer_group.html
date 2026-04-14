@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Viewer group</title>
+<style>
+:root{--bg:#eef2f7;--card:#fff;--line:#d7deea;--text:#1f2a37;--muted:#6b7280;--accent:#0f62fe}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}.titlebox h1{margin:0;font-size:28px}.titlebox .sub{margin-top:4px;color:var(--muted)}#clock{font-size:18px;color:var(--muted)}.toolbar{display:flex;gap:12px;align-items:center;padding:18px 24px;flex-wrap:wrap}select{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;min-width:320px;font-size:16px}.badge{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--muted)}.leader{margin:0 24px 18px;background:linear-gradient(135deg,#ffffff,#f7fbff);border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:0 6px 18px rgba(0,0,0,.06)}.leader h2{margin:0 0 8px;font-size:24px}.leader .meta{display:flex;gap:20px;flex-wrap:wrap;color:var(--muted)}.panel{margin:0 24px 24px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.05)}table{width:100%;border-collapse:collapse}thead th{background:#f3f6fb;padding:12px 10px;text-align:left;font-size:14px;border-bottom:1px solid var(--line)}tbody td{padding:10px;border-bottom:1px solid #edf1f7;font-size:15px;vertical-align:top}tbody tr:nth-child(1),tbody tr:nth-child(2),tbody tr:nth-child(3){font-weight:700}.place{width:70px}.bib{width:70px}.person{width:260px;max-width:260px}.org{width:240px;max-width:240px}.result{width:180px}.stages{min-width:220px;color:#374151}.person-cell{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.org-cell{max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media (max-width:900px){.toolbar{padding:12px}.leader{margin:0 12px 12px}.panel{margin:0 12px 12px}select{min-width:0;width:100%}thead th,tbody td{font-size:13px;padding:8px 6px}}</style>
+</head>
+<body>
+<header>
+  <div class="titlebox"><h1 id="title">Полный протокол группы</h1><div class="sub" id="subtitle"></div></div>
+  <div id="clock"></div>
+</header>
+<div class="toolbar">
+  <select id="group"></select>
+  <div class="badge" id="modeInfo">Режим просмотра</div>
+</div>
+<section class="leader" id="leaderCard">
+  <h2>Лидер группы</h2>
+  <div id="leaderName">—</div>
+  <div class="meta">
+    <div id="leaderOrg"></div>
+    <div id="leaderResult"></div>
+    <div id="leaderBib"></div>
+  </div>
+</section>
+<div class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th class="place">Место</th>
+        <th class="bib">№</th>
+        <th class="person">Участник</th>
+        <th class="org">Коллектив</th>
+        <th class="result">Результат</th>
+        <th class="stages">Этапы</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+<script>
+let groups=[];
+let autoIndex=0;
+const params=new URLSearchParams(location.search);
+const autoMode=params.get('auto')==='1';
+const autoSeconds=parseInt(params.get('seconds')||'10',10);
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('ru-RU');}
+setInterval(tick,1000);tick();
+async function loadHeader(){const info=await fetch('/api/event-info').then(r=>r.json());document.getElementById('subtitle').textContent=[info.location,info.date].filter(Boolean).join(' • ');document.getElementById('modeInfo').textContent=autoMode?`Автопереключение групп: ${autoSeconds} сек`:'Режим просмотра группы';}
+async function loadGroups(){groups=await fetch('/api/groups').then(r=>r.json());const sel=document.getElementById('group');const current=sel.value;sel.innerHTML='';groups.forEach((g,idx)=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;sel.appendChild(o);if(idx===autoIndex){o.selected=true;}});if(current && !autoMode){sel.value=current;}loadGroup();}
+function renderLeader(row){document.getElementById('leaderName').textContent=row?row.name:'—';document.getElementById('leaderOrg').textContent=row?row.organization||'':' ';document.getElementById('leaderResult').textContent=row?row.result||'':'';document.getElementById('leaderBib').textContent=row?('№ '+(row.bib||'')):'';}
+async function loadGroup(){const sel=document.getElementById('group');const id=sel.value||'';const data=await fetch('/api/viewer/group?group_id='+encodeURIComponent(id)).then(r=>r.json());document.getElementById('title').textContent='Полный протокол группы: '+data.group;const body=document.getElementById('rows');body.innerHTML='';renderLeader(data.rows && data.rows.length ? data.rows[0] : null);data.rows.forEach(row=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${row.place||''}</td><td>${row.bib||''}</td><td class="person-cell" title="${row.name||''}">${row.name||''}</td><td class="org-cell" title="${row.organization||''}">${row.organization||''}</td><td>${row.result||''}</td><td>${row.stage_marks||''}</td>`;body.appendChild(tr);});}
+document.getElementById('group').addEventListener('change',loadGroup);
+if(autoMode){setInterval(()=>{if(!groups.length)return;autoIndex=(autoIndex+1)%groups.length;loadGroups();},autoSeconds*1000);}
+setInterval(loadGroup,5000);loadHeader();loadGroups();
+</script>
+</body>
+</html>

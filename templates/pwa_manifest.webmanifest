@@ -1,0 +1,16 @@
+{
+  "name": "SportOrg Timing",
+  "short_name": "Timing",
+  "start_url": "/timing/stage",
+  "display": "standalone",
+  "background_color": "#eef2f7",
+  "theme_color": "#0f62fe",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
