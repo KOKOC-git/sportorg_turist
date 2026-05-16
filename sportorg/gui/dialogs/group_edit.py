@@ -14,7 +14,7 @@ from sportorg.gui.global_access import GlobalAccess
 from sportorg.language import translate
 from sportorg.models.constant import get_race_courses
 from sportorg.models.memory import Limit, RaceType, find, race
-from sportorg.models.tourism import CompetitionType
+from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.modules.live.live import live_client
 from sportorg.modules.teamwork.teamwork import Teamwork
@@ -25,6 +25,9 @@ class GroupEditDialog(BaseDialog):
         super().__init__(GlobalAccess().get_main_window())
         self.current_object = group
         self.is_new = is_new
+        # Временное поле для BaseDialog: реальная привязка хранится
+        # в race().tourism_courses[*].group_ids, а не в самой группе.
+        self.tourism_course = None
         time_format = 'hh:mm:ss'
         self.title = translate('Group properties')
         self.size = (450, 540)
@@ -108,6 +111,13 @@ class GroupEditDialog(BaseDialog):
                 items=self.get_competition_type_titles(),
             ),
             AdvComboBoxField(
+                title='Дистанция туризма',
+                object=self,
+                key='tourism_course',
+                id='tourism_course',
+                items=self.get_tourism_course_titles(),
+            ),
+            AdvComboBoxField(
                 title=translate('Type'),
                 object=group,
                 key='race_type',
@@ -126,6 +136,7 @@ class GroupEditDialog(BaseDialog):
     def before_showing(self) -> None:
         self.on_is_any_course_changed()
         self.on_is_ranking_active_changed()
+        self.on_competition_type_changed()
 
 
     def get_competition_type_titles(self):
@@ -155,6 +166,34 @@ class GroupEditDialog(BaseDialog):
         }
         return mapping.get(text)
 
+    def get_tourism_course_titles(self):
+        ensure_tourism_defaults(race())
+        titles = ['']
+        titles.extend([course.name for course in getattr(race(), 'tourism_courses', [])])
+        return titles
+
+    def _get_group_tourism_course(self):
+        ensure_tourism_defaults(race())
+        group_id = str(self.current_object.id)
+        for tourism_course in getattr(race(), 'tourism_courses', []):
+            group_ids = [str(x) for x in getattr(tourism_course, 'group_ids', [])]
+            if group_id in group_ids:
+                return tourism_course
+        return None
+
+    def convert_tourism_course(self, _) -> str:
+        tourism_course = self._get_group_tourism_course()
+        return tourism_course.name if tourism_course else ''
+
+    def parse_tourism_course(self, text: str):
+        ensure_tourism_defaults(race())
+        if not text:
+            return None
+        for tourism_course in getattr(race(), 'tourism_courses', []):
+            if tourism_course.name == text:
+                return tourism_course
+        return None
+
     def convert_course(self, course) -> str:
         if not course:
             return ''
@@ -171,6 +210,19 @@ class GroupEditDialog(BaseDialog):
         if selected != race().data.race_type:
             return selected
         return None
+
+    def on_competition_type_changed(self):
+        if 'tourism_course' not in self.fields:
+            return
+
+        current_text = self.fields['competition_type'].q_item.currentText()
+        is_tourism = current_text == translate('Tourism')
+
+        # Если группа наследует тип от события, а событие само Туризм — тоже показываем поле.
+        if current_text == translate('Inherit from event'):
+            is_tourism = getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
+
+        self.fields['tourism_course'].q_item.setEnabled(is_tourism)
 
     def on_name_changed(self):
         name = self.fields['name'].q_item.text()
@@ -224,6 +276,27 @@ class GroupEditDialog(BaseDialog):
         group = self.current_object
         if self.is_new:
             race().groups.insert(0, group)
+
+        ensure_tourism_defaults(race())
+
+        if 'tourism_course' in self.fields:
+            selected_course = self.fields['tourism_course'].q_item.currentData()
+            group_id = str(group.id)
+
+            # Убираем группу из всех туристских дистанций,
+            # чтобы одна группа не оказалась случайно в нескольких дистанциях.
+            for tourism_course in getattr(race(), 'tourism_courses', []):
+                tourism_course.group_ids = [
+                    str(x) for x in getattr(tourism_course, 'group_ids', [])
+                    if str(x) != group_id
+                ]
+
+            # Добавляем группу в выбранную туристскую дистанцию.
+            if selected_course:
+                for tourism_course in getattr(race(), 'tourism_courses', []):
+                    if str(tourism_course.id) == str(selected_course.id):
+                        tourism_course.group_ids.append(group_id)
+                        break
 
         ResultCalculation(race()).set_rank(group)
         live_client.send(group)
