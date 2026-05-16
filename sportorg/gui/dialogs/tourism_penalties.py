@@ -28,6 +28,7 @@ from sportorg.models.tourism import (
     TourismJudgingMode,
     TourismStageDecision,
     ensure_tourism_defaults,
+    get_tourism_stages_for_group,
     hms_to_sec,
     sec_to_hms,
 )
@@ -155,8 +156,7 @@ class TourismPenaltiesDialog(QDialog):
         if group_type != CompetitionType.TOURISM.value:
             return
 
-        stages = [x for x in race().tourism_stages if x.group_id == str(person.group.id)]
-        stages = sorted(stages, key=lambda x: x.order_num)
+        stages = get_tourism_stages_for_group(race(), str(person.group.id))
         for stage in stages:
             self.stage_combo.addItem(f'{stage.order_num}. {stage.name}', stage.id)
 

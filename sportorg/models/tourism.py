@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class CompetitionType(str, Enum):
@@ -19,16 +19,43 @@ class TourismJudgingMode(str, Enum):
 
 
 @dataclass
-class TourismStage:
+class TourismCourse:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    group_id: str = ""
-    order_num: int = 0
     name: str = ""
+    group_ids: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "object": self.__class__.__name__,
             "id": self.id,
+            "name": self.name,
+            "group_ids": list(self.group_ids),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "TourismCourse":
+        return cls(
+            id=str(data.get("id", str(uuid.uuid4()))),
+            name=str(data.get("name", "")),
+            group_ids=[str(x) for x in data.get("group_ids", [])],
+        )
+
+
+@dataclass
+class TourismStage:
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    tourism_course_id: str = ""
+    order_num: int = 0
+    name: str = ""
+
+    # совместимость со старой схемой, где этап был привязан к group_id
+    group_id: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "object": self.__class__.__name__,
+            "id": self.id,
+            "tourism_course_id": self.tourism_course_id,
             "group_id": self.group_id,
             "order_num": self.order_num,
             "name": self.name,
@@ -38,6 +65,7 @@ class TourismStage:
     def from_dict(cls, data: Dict[str, Any]) -> "TourismStage":
         return cls(
             id=str(data.get("id", str(uuid.uuid4()))),
+            tourism_course_id=str(data.get("tourism_course_id", "")),
             group_id=str(data.get("group_id", "")),
             order_num=int(data.get("order_num", 0)),
             name=str(data.get("name", "")),
@@ -133,6 +161,31 @@ def hms_to_sec(value: str) -> int:
     return int(h) * 3600 + int(m) * 60 + int(s)
 
 
+def find_tourism_course_for_group(obj: Any, group_id: str) -> Optional[TourismCourse]:
+    ensure_tourism_defaults(obj)
+    group_id = str(group_id)
+
+    for course in obj.tourism_courses:
+        if group_id in [str(x) for x in getattr(course, "group_ids", [])]:
+            return course
+
+    return None
+
+
+def get_tourism_stages_for_group(obj: Any, group_id: str) -> List[TourismStage]:
+    ensure_tourism_defaults(obj)
+    course = find_tourism_course_for_group(obj, group_id)
+    if not course:
+        return []
+
+    stages = [
+        x for x in obj.tourism_stages
+        if str(getattr(x, "tourism_course_id", "")) == str(course.id)
+    ]
+
+    return sorted(stages, key=lambda x: x.order_num)
+
+
 def ensure_tourism_defaults(obj: Any) -> None:
     if not hasattr(obj, "competition_type"):
         obj.competition_type = CompetitionType.INDIVIDUAL.value
@@ -140,8 +193,30 @@ def ensure_tourism_defaults(obj: Any) -> None:
     if not hasattr(obj, "tourism_judging_mode"):
         obj.tourism_judging_mode = TourismJudgingMode.PENALTY.value
 
+    if not hasattr(obj, "tourism_courses"):
+        obj.tourism_courses: List[TourismCourse] = []
+
     if not hasattr(obj, "tourism_stages"):
         obj.tourism_stages: List[TourismStage] = []
 
     if not hasattr(obj, "tourism_stage_decisions"):
         obj.tourism_stage_decisions: List[TourismStageDecision] = []
+
+    # Миграция старой схемы: если есть этапы с group_id, но нет дистанций,
+    # создаём отдельные дистанции по группам, чтобы старые данные не потерялись.
+    if not obj.tourism_courses and obj.tourism_stages:
+        grouped = {}
+        for stage in obj.tourism_stages:
+            old_group_id = str(getattr(stage, "group_id", "") or "")
+            if not old_group_id:
+                continue
+
+            if old_group_id not in grouped:
+                course = TourismCourse(
+                    name=f"Дистанция группы {old_group_id}",
+                    group_ids=[old_group_id],
+                )
+                grouped[old_group_id] = course
+                obj.tourism_courses.append(course)
+
+            stage.tourism_course_id = grouped[old_group_id].id
