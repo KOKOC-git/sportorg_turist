@@ -5,7 +5,6 @@ from datetime import datetime
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -13,10 +12,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QLabel,
     QLineEdit,
-    QPushButton,
     QScrollArea,
-    QTableWidget,
-    QTableWidgetItem,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -32,17 +28,6 @@ from sportorg.models.memory import Limit, Result, ResultStatus, Split, race
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.result.result_checker import ResultChecker, ResultCheckerException
 from sportorg.models.result.split_calculation import GroupSplits
-from sportorg.models.tourism import (
-    CompetitionType,
-    TourismJudgingMode,
-    TourismStageDecision,
-    ensure_tourism_defaults,
-    get_stage_name,
-    get_tourism_stages_for_group,
-    hms_to_sec,
-    sec_to_hms,
-)
-from sportorg.services.tourism_result_calculation import TourismResultCalculator
 from sportorg.modules.live.live import live_client
 from sportorg.modules.teamwork.teamwork import Teamwork
 from sportorg.utils.time import hhmmss_to_time
@@ -58,9 +43,6 @@ class ResultEditDialog(QDialog):
         time_accuracy = race().get_setting('time_accuracy', 0)
         if time_accuracy:
             self.time_format = 'hh:mm:ss.zzz'
-
-        self.tourism_table = None
-        self.tourism_stage_ids = []
 
     def exec_(self):
         self.init_ui()
@@ -136,8 +118,6 @@ class ResultEditDialog(QDialog):
         form_layout.addRow(QLabel(translate('Status')), self.item_status)
         form_layout.addRow(QLabel(translate('Comment')), self.item_status_comment)
 
-        self._add_tourism_block(form_layout)
-
         if self.current_object.is_punch():
             start_source = race().get_setting('system_start_source', 'protocol')
             finish_source = race().get_setting('system_finish_source', 'station')
@@ -157,7 +137,6 @@ class ResultEditDialog(QDialog):
         def apply_changes():
             try:
                 self.apply_changes_impl()
-                self.apply_tourism_changes()
             except Exception as e:
                 logging.exception(e)
             self.close()
@@ -180,172 +159,6 @@ class ResultEditDialog(QDialog):
 
         self.show()
         self.item_bib.setFocus()
-
-
-    def _is_tourism_result(self):
-        obj = race()
-        ensure_tourism_defaults(obj)
-
-        if getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) != CompetitionType.TOURISM.value:
-            return False
-
-        person = self.current_object.person
-        if not person or not person.group:
-            return False
-
-        if hasattr(person.group, 'get_competition_type'):
-            return person.group.get_competition_type() == CompetitionType.TOURISM.value
-
-        return True
-
-    def _get_tourism_stages(self):
-        if not self._is_tourism_result():
-            return []
-        person = self.current_object.person
-        return get_tourism_stages_for_group(race(), str(person.group.id))
-
-    def _add_tourism_block(self, form_layout):
-        if not self._is_tourism_result():
-            return
-
-        group_box = QGroupBox('Туризм: штрафы, отсечки, снятия')
-        box_layout = QVBoxLayout(group_box)
-
-        self.tourism_table = QTableWidget(group_box)
-        self.tourism_table.setColumnCount(6)
-        self.tourism_table.setHorizontalHeaderLabels([
-            'Этап',
-            'Штраф временем',
-            'Штраф баллами',
-            'Отсечка',
-            'Снятие',
-            'Комментарий',
-        ])
-
-        box_layout.addWidget(self.tourism_table)
-
-        hint = QLabel(
-            'Пустая строка этапа означает, что санкция по этому этапу не задана. '
-            'Формат времени: ЧЧ:ММ:СС или ММ:СС.'
-        )
-        hint.setWordWrap(True)
-        box_layout.addWidget(hint)
-
-        form_layout.addRow(group_box)
-
-    def _find_tourism_decision(self, stage_id):
-        person = self.current_object.person
-        if not person:
-            return None
-
-        for decision in race().tourism_stage_decisions:
-            if (
-                str(decision.stage_id) == str(stage_id)
-                and str(decision.person_id) == str(person.id)
-            ):
-                return decision
-
-        return None
-
-    def load_tourism_decisions(self):
-        if not self.tourism_table:
-            return
-
-        stages = self._get_tourism_stages()
-        self.tourism_stage_ids = [str(stage.id) for stage in stages]
-
-        self.tourism_table.setRowCount(len(stages))
-
-        for row, stage in enumerate(stages):
-            decision = self._find_tourism_decision(stage.id)
-
-            self.tourism_table.setItem(row, 0, QTableWidgetItem(f'{stage.order_num}. {stage.name}'))
-
-            penalty_time = QLineEdit()
-            penalty_time.setPlaceholderText('00:00:00')
-            penalty_points = QLineEdit()
-            penalty_points.setPlaceholderText('0')
-            cutoff_time = QLineEdit()
-            cutoff_time.setPlaceholderText('00:00:00')
-            stage_dsq = QCheckBox()
-            comment = QLineEdit()
-
-            if decision:
-                penalty_time.setText(sec_to_hms(decision.penalty_time_sec) if decision.penalty_time_sec else '')
-                penalty_points.setText(str(decision.penalty_points) if decision.penalty_points else '')
-                cutoff_time.setText(sec_to_hms(decision.cutoff_time_sec) if decision.cutoff_time_sec else '')
-                stage_dsq.setChecked(bool(decision.is_stage_dsq))
-                comment.setText(decision.comment or '')
-
-            self.tourism_table.setCellWidget(row, 1, penalty_time)
-            self.tourism_table.setCellWidget(row, 2, penalty_points)
-            self.tourism_table.setCellWidget(row, 3, cutoff_time)
-            self.tourism_table.setCellWidget(row, 4, stage_dsq)
-            self.tourism_table.setCellWidget(row, 5, comment)
-
-        self.tourism_table.resizeColumnsToContents()
-
-    def apply_tourism_changes(self):
-        if not self.tourism_table:
-            return
-
-        obj = race()
-        ensure_tourism_defaults(obj)
-
-        if getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) != CompetitionType.TOURISM.value:
-            return
-
-        person = self.current_object.person
-        if not person or not person.group:
-            return
-
-        mode = TourismJudgingMode(getattr(obj, 'tourism_judging_mode', TourismJudgingMode.PENALTY.value))
-
-        for row, stage_id in enumerate(self.tourism_stage_ids):
-            penalty_time_widget = self.tourism_table.cellWidget(row, 1)
-            penalty_points_widget = self.tourism_table.cellWidget(row, 2)
-            cutoff_widget = self.tourism_table.cellWidget(row, 3)
-            dsq_widget = self.tourism_table.cellWidget(row, 4)
-            comment_widget = self.tourism_table.cellWidget(row, 5)
-
-            penalty_time_sec = hms_to_sec(penalty_time_widget.text() if penalty_time_widget else '')
-            penalty_points = int((penalty_points_widget.text() if penalty_points_widget else '') or '0')
-            cutoff_time_sec = hms_to_sec(cutoff_widget.text() if cutoff_widget else '')
-            is_stage_dsq = bool(dsq_widget.isChecked()) if dsq_widget else False
-            comment = comment_widget.text().strip() if comment_widget else ''
-
-            existing = self._find_tourism_decision(stage_id)
-
-            is_empty = (
-                penalty_time_sec == 0
-                and penalty_points == 0
-                and cutoff_time_sec == 0
-                and not is_stage_dsq
-                and not comment
-            )
-
-            if is_empty:
-                if existing:
-                    obj.tourism_stage_decisions = [
-                        d for d in obj.tourism_stage_decisions
-                        if str(d.id) != str(existing.id)
-                    ]
-                continue
-
-            decision = existing or TourismStageDecision(stage_id=stage_id, person_id=str(person.id))
-            decision.penalty_time_sec = penalty_time_sec
-            decision.penalty_points = penalty_points
-            decision.cutoff_time_sec = cutoff_time_sec
-            decision.is_stage_dsq = is_stage_dsq
-            decision.comment = comment
-            decision.validate(mode)
-
-            if existing is None:
-                obj.tourism_stage_decisions.append(decision)
-
-        TourismResultCalculator.apply(obj)
-        ResultCalculation(obj).process_results()
-
 
     def show_person_info(self):
         bib = self.item_bib.value()
@@ -395,8 +208,6 @@ class ResultEditDialog(QDialog):
         self.item_status.setCurrentText(self.current_object.status.get_title())
 
         self.item_status_comment.setCurrentText(self.current_object.status_comment)
-
-        self.load_tourism_decisions()
 
         self.item_bib.selectAll()
 
