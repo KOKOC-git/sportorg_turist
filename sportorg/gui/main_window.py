@@ -520,8 +520,9 @@ class MainWindow(QMainWindow):
             table.model().layoutChanged.emit()
 
             table = self.get_course_table()
-            table.model().init_cache()
-            table.model().layoutChanged.emit()
+            if table is not None and table.model() is not None:
+                table.model().init_cache()
+                table.model().layoutChanged.emit()
 
             table = self.get_organization_table()
             table.model().init_cache()

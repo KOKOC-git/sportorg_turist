@@ -220,3 +220,52 @@ def ensure_tourism_defaults(obj: Any) -> None:
                 obj.tourism_courses.append(course)
 
             stage.tourism_course_id = grouped[old_group_id].id
+
+
+
+def get_tourism_course_for_group(obj: Any, group_id: str):
+    """Return tourism course assigned to the group.
+
+    New schema:
+    - TourismCourse.group_ids contains one or more group IDs.
+    - TourismStage.tourism_course_id points to TourismCourse.id.
+
+    Backward compatibility:
+    - old TourismStage.group_id is still accepted.
+    """
+    ensure_tourism_defaults(obj)
+    group_id = str(group_id)
+
+    for course in getattr(obj, "tourism_courses", []):
+        if group_id in [str(x) for x in getattr(course, "group_ids", [])]:
+            return course
+
+    return None
+
+
+def get_tourism_stages_for_group(obj: Any, group_id: str):
+    ensure_tourism_defaults(obj)
+    group_id = str(group_id)
+
+    course = get_tourism_course_for_group(obj, group_id)
+    if course:
+        stages = [
+            x for x in getattr(obj, "tourism_stages", [])
+            if str(getattr(x, "tourism_course_id", "")) == str(course.id)
+        ]
+        return sorted(stages, key=lambda x: x.order_num)
+
+    # Old schema fallback.
+    stages = [
+        x for x in getattr(obj, "tourism_stages", [])
+        if str(getattr(x, "group_id", "")) == group_id
+    ]
+    return sorted(stages, key=lambda x: x.order_num)
+
+
+def get_stage_name(obj: Any, stage_id: str) -> str:
+    ensure_tourism_defaults(obj)
+    for stage in getattr(obj, "tourism_stages", []):
+        if str(stage.id) == str(stage_id):
+            return stage.name
+    return ""
