@@ -134,9 +134,65 @@ class GroupEditDialog(BaseDialog):
         ]
 
     def before_showing(self) -> None:
+        self.update_tourism_fields_visibility()
         self.on_is_any_course_changed()
         self.on_is_ranking_active_changed()
-        self.on_competition_type_changed()
+
+    def _set_field_visible(self, field_id, visible: bool):
+        field = self.fields.get(field_id)
+        if not field:
+            return
+
+        widgets = []
+
+        q_item = getattr(field, 'q_item', None)
+        if q_item is not None:
+            widgets.append(q_item)
+
+        q_label = getattr(field, 'q_label', None)
+        if q_label is not None:
+            widgets.append(q_label)
+
+        label = getattr(field, 'label', None)
+        if label is not None:
+            widgets.append(label)
+
+        title_label = getattr(field, 'title_label', None)
+        if title_label is not None:
+            widgets.append(title_label)
+
+        for widget in widgets:
+            if hasattr(widget, 'setVisible'):
+                widget.setVisible(visible)
+
+    def _is_tourism_mode(self) -> bool:
+        group = self.current_object
+
+        try:
+            return group.get_competition_type() == CompetitionType.TOURISM.value
+        except Exception:
+            return getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
+
+    def update_tourism_fields_visibility(self):
+        is_tourism = self._is_tourism_mode()
+
+        # Скрываем поля, которые относятся к обычному ориентированию.
+        classic_orienteering_fields = [
+            'course',
+            'is_any_course',
+            'race_type',
+            'is_ranking_active',
+            'ranking',
+        ]
+
+        for field_id in classic_orienteering_fields:
+            self._set_field_visible(field_id, not is_tourism)
+
+        # Поле туристской дистанции показываем только в режиме Туризм.
+        self._set_field_visible('tourism_course', is_tourism)
+
+    def on_competition_type_changed(self):
+        self.update_tourism_fields_visibility()
 
 
     def get_competition_type_titles(self):
@@ -238,11 +294,15 @@ class GroupEditDialog(BaseDialog):
         self.show()
 
     def on_is_any_course_changed(self):
+        if 'course' not in self.fields or 'is_any_course' not in self.fields:
+            return
         self.fields['course'].q_item.setDisabled(
             self.fields['is_any_course'].q_item.isChecked()
         )
 
     def on_is_ranking_active_changed(self):
+        if 'ranking' not in self.fields or 'is_ranking_active' not in self.fields:
+            return
         self.fields['ranking'].q_item.setEnabled(
             self.fields['is_ranking_active'].q_item.isChecked()
         )
