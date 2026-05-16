@@ -501,6 +501,10 @@ class MainWindow(QMainWindow):
 
     def refresh(self):
         logging.debug('Refreshing interface')
+        current_widget = self.tabwidget.currentWidget()
+        if hasattr(current_widget, 'refresh_view'):
+            current_widget.refresh_view()
+
         try:
             t = time.time()
             table = self.get_person_table()
