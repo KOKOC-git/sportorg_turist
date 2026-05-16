@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Командный зачёт — Туризм</h2>
+<table class="sportorg-table">
+  <thead>
+    <tr><th>Место</th><th>Команда</th><th>Территория</th><th>Группа зачёта</th><th>Очки</th></tr>
+  </thead>
+  <tbody>
+  {% for row in teams %}
+    <tr>
+      <td>{{ row.place or '' }}</td>
+      <td>{{ row.team }}</td>
+      <td>{{ row.region }}</td>
+      <td>{{ row.group }}</td>
+      <td>{{ row.total_points }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

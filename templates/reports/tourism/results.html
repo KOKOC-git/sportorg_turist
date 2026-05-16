@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Протокол результатов — Туризм</h2>
+<table class="sportorg-table">
+  <thead>
+    <tr>
+      <th>Место</th><th>№</th><th>Участник/состав</th><th>Группа</th><th>Команда</th>
+      <th>Старт</th><th>Финиш</th><th>Время</th><th>Отсечки</th><th>Штраф</th><th>Итог</th><th>Статус</th><th>Очки</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in results %}
+    <tr>
+      <td>{{ r.place or '' }}</td>
+      <td>{{ r.identifier }}</td>
+      <td>{{ r.name }}</td>
+      <td>{{ r.group }}</td>
+      <td>{{ r.team }}</td>
+      <td>{{ r.start_time or '' }}</td>
+      <td>{{ r.finish_time or '' }}</td>
+      <td>{{ r.pure_time or '' }}</td>
+      <td>{{ r.cutoffs or '' }}</td>
+      <td>{{ r.penalty_points_sum }}</td>
+      <td>{{ r.final_time or '' }}</td>
+      <td>{{ r.status_label }}</td>
+      <td>{{ r.points or '' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
