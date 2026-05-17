@@ -11,11 +11,3 @@ Sportorg is a comprehensive software solution developed in Python that streamlin
 ## Run from source
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## Screenshots
-
-![Mainwindow sportorg](img/mainwindow.png)
-
-![Dialogedit sportorg](img/dialogedit.png)
-
-![Bibprintout sportorg](img/bibprintout.png)
