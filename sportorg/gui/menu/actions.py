@@ -44,6 +44,7 @@ from sportorg.gui.dialogs.telegram_dialog import TelegramDialog
 from sportorg.gui.dialogs.text_io import TextExchangeDialog
 from sportorg.gui.dialogs.timekeeping_properties import TimekeepingPropertiesDialog
 from sportorg.gui.dialogs.tourism_penalties import TourismPenaltiesDialog
+from sportorg.gui.dialogs.tourism_stage_penalties import TourismStagePenaltiesDialog
 from sportorg.gui.dialogs.tourism_stages import TourismStagesDialog
 from sportorg.gui.menu.action import Action
 from sportorg.gui.utils.custom_controls import messageBoxQuestion
@@ -720,6 +721,30 @@ class TourismPenaltiesAction(Action, metaclass=ActionFactory):
         TourismResultCalculator.apply(race())
         ResultCalculation(race()).process_results()
         self.app.refresh()
+
+
+class TourismStagePenaltiesAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        obj = race()
+        ensure_tourism_defaults(obj)
+
+        if getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) != CompetitionType.TOURISM.value:
+            mes = QMessageBox()
+            mes.setText(translate('This function is available only for Tourism competition type'))
+            mes.exec_()
+            return
+
+        if not getattr(obj, 'tourism_stages', []):
+            mes = QMessageBox()
+            mes.setText(translate('No tourism stages found. Please create stages first'))
+            mes.exec_()
+            return
+
+        TourismStagePenaltiesDialog(self.app).exec()
+        TourismResultCalculator.apply(race())
+        ResultCalculation(race()).process_results()
+        self.app.refresh()
+
 
 
 class ChangeStatusAction(Action, metaclass=ActionFactory):

@@ -320,6 +320,10 @@ def menu_list():
                     'action': 'TourismPenaltiesAction',
                 },
                 {
+                    'title': 'Штрафы / отсечки по этапу',
+                    'action': 'TourismStagePenaltiesAction',
+                },
+                {
                     'title': translate('Change status'),
                     'shortcut': 'F4',
                     'tabs': [1],
