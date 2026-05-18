@@ -1,8 +1,10 @@
 from sportorg import config
 from sportorg.language import translate
+from sportorg.models.memory import race
+from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults
 
 
-def menu_list():
+def _default_menu_list():
     return [
         {
             'title': translate('File'),
@@ -466,3 +468,190 @@ def menu_list():
             ],
         },
     ]
+
+
+
+def _is_tourism_mode():
+    try:
+        obj = race()
+        ensure_tourism_defaults(obj)
+        return getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
+    except Exception:
+        return False
+
+
+def _filter_actions(actions, allowed_titles):
+    result = []
+
+    for action in actions:
+        if action.get('type') == 'separator':
+            # Разделители добавим аккуратно: только если до него уже есть пункт.
+            if result and result[-1].get('type') != 'separator':
+                result.append(action)
+            continue
+
+        title = action.get('title')
+
+        if 'actions' in action:
+            nested = _filter_actions(action.get('actions', []), allowed_titles)
+            if nested:
+                new_action = dict(action)
+                new_action['actions'] = nested
+                result.append(new_action)
+            continue
+
+        if title in allowed_titles:
+            result.append(action)
+
+    # Убрать хвостовой separator.
+    while result and result[-1].get('type') == 'separator':
+        result.pop()
+
+    return result
+
+
+def _tourism_menu_list():
+    menu = _default_menu_list()
+
+    # В туризме оставляем только пункты, которые реально нужны.
+    # Всё, что относится к КП, сплитам, SPORTident-курсам, подготовке стартов
+    # и проверке отметки ориентирования — скрываем.
+    allowed_by_menu = {
+        translate('File'): {
+            translate('New'),
+            translate('Save'),
+            translate('Open'),
+            translate('Save As'),
+            translate('Settings'),
+            translate('Event Settings'),
+            translate('Import'),
+            translate('Export'),
+            translate('Import from SportOrg file'),
+            translate('CSV Winorient'),
+            translate('WDB Winorient'),
+            translate('IOF xml'),
+            translate('ResultList'),
+            translate('EntrytList'),
+            translate('CompetitorList'),
+            translate('StartList'),
+        },
+        translate('Edit'): {
+            translate('Add object'),
+            translate('Delete'),
+            translate('Copy'),
+            translate('Duplicate'),
+            translate('Text exchange'),
+            translate('Mass edit'),
+        },
+        translate('View'): {
+            translate('Refresh'),
+            translate('Filter'),
+            translate('Filter reset'),
+            translate('Search'),
+            translate('Start Preparation'),
+            translate('Race Results'),
+            translate('Groups'),
+            translate('Courses'),
+            translate('Teams'),
+        },
+        translate('Race'): {
+            translate('Manual finish'),
+            translate('Add SPORTident result'),
+        },
+        translate('Results'): {
+            translate('Create report'),
+            translate('Penalty calculation'),
+            translate('Penalty removing'),
+            translate('Assign penalties / cutoff'),
+            translate('Assign penalties by stage'),
+            translate('Assign stage penalties'),
+            translate('Change status'),
+            translate('Set DNS numbers'),
+            translate('Assign result by bib'),
+            translate('Assign result by card number'),
+        },
+        translate('Service'): {
+            translate('on/off SPORTident readout'),
+            translate('on/off Sportiduino readout'),
+            translate('on/off SFR readout'),
+            translate('on/off RFID Impinj readout'),
+            translate('on/off SRPid readout'),
+            translate('Teamwork'),
+            translate('Send selected'),
+            translate('On/Off'),
+            translate('Telegram'),
+            translate('Send results'),
+            translate('Online'),
+        },
+        translate('Options'): {
+            translate('Timekeeping settings'),
+            translate('Teamwork'),
+            translate('Printer settings'),
+            translate('Live'),
+            translate('Web timing'),
+            translate('Telegram'),
+            translate('Rent cards'),
+        },
+        translate('Help'): {
+            translate('About'),
+            translate('Check updates'),
+        },
+    }
+
+    # Эти верхние меню в режиме Туризм полностью скрываем.
+    hidden_top_menus = {
+        translate('Start Preparation'),
+    }
+
+    filtered_menu = []
+
+    for top in menu:
+        title = top.get('title')
+
+        if title in hidden_top_menus:
+            continue
+
+        allowed_titles = allowed_by_menu.get(title)
+        if allowed_titles is None:
+            continue
+
+        new_top = dict(top)
+        new_top['actions'] = _filter_actions(top.get('actions', []), allowed_titles)
+
+        # В режиме Туризм пункт назначения штрафов по одному этапу
+        # должен быть доступен в меню Результаты независимо от фильтрации по названию.
+        if title == translate('Results'):
+            has_stage_penalties = any(
+                action.get('action') == 'TourismStagePenaltiesAction'
+                for action in new_top.get('actions', [])
+                if isinstance(action, dict)
+            )
+
+            if not has_stage_penalties:
+                insert_index = len(new_top['actions'])
+                for i, action in enumerate(new_top['actions']):
+                    if (
+                        isinstance(action, dict)
+                        and action.get('action') == 'TourismPenaltiesAction'
+                    ):
+                        insert_index = i + 1
+                        break
+
+                new_top['actions'].insert(
+                    insert_index,
+                    {
+                        'title': translate('Assign penalties by stage'),
+                        'action': 'TourismStagePenaltiesAction',
+                    },
+                )
+
+        if new_top['actions']:
+            filtered_menu.append(new_top)
+
+    return filtered_menu
+
+
+def menu_list():
+    if _is_tourism_mode():
+        return _tourism_menu_list()
+    return _default_menu_list()
