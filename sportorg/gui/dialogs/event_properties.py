@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
 
 from sportorg import config
 from sportorg.gui.global_access import GlobalAccess
-from sportorg.gui.dialogs.tourism_stages import TourismStagesDialog
 from sportorg.gui.utils.custom_controls import AdvComboBox, AdvSpinBox
 from sportorg.language import translate
 from sportorg.models.memory import RaceType, race
@@ -102,13 +101,6 @@ class EventPropertiesDialog(QDialog):
         def apply_changes():
             try:
                 self.apply_changes_impl()
-                obj = race()
-                if (
-                    getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value)
-                    == CompetitionType.TOURISM.value
-                    and not getattr(obj, 'tourism_stages', [])
-                ):
-                    TourismStagesDialog(self).exec()
             except Exception as e:
                 logging.error(str(e))
             self.close()

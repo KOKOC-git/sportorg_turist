@@ -501,6 +501,10 @@ class MainWindow(QMainWindow):
 
     def refresh(self):
         logging.debug('Refreshing interface')
+        current_widget = self.tabwidget.currentWidget()
+        if hasattr(current_widget, 'refresh_view'):
+            current_widget.refresh_view()
+
         try:
             t = time.time()
             table = self.get_person_table()
@@ -516,8 +520,9 @@ class MainWindow(QMainWindow):
             table.model().layoutChanged.emit()
 
             table = self.get_course_table()
-            table.model().init_cache()
-            table.model().layoutChanged.emit()
+            if table is not None and table.model() is not None:
+                table.model().init_cache()
+                table.model().layoutChanged.emit()
 
             table = self.get_organization_table()
             table.model().init_cache()

@@ -316,12 +316,12 @@ def menu_list():
                     'type': 'separator',
                 },
                 {
-                    'title': translate('Tourism stages'),
-                    'action': 'TourismStagesAction',
-                },
-                {
                     'title': translate('Assign penalties / cutoff'),
                     'action': 'TourismPenaltiesAction',
+                },
+                {
+                    'title': 'Штрафы / отсечки по этапу',
+                    'action': 'TourismStagePenaltiesAction',
                 },
                 {
                     'title': translate('Change status'),

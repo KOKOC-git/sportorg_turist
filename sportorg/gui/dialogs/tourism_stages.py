@@ -1,41 +1,73 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
 
 from sportorg.language import translate
 from sportorg.models.memory import race
-from sportorg.models.tourism import CompetitionType, TourismStage, ensure_tourism_defaults
+from sportorg.models.tourism import (
+    CompetitionType,
+    TourismCourse,
+    TourismStage,
+    ensure_tourism_defaults, normalize_tourism_links,
+)
 
 
 class TourismStagesDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(translate('Tourism stages'))
-        self.resize(760, 500)
+        self.resize(900, 640)
 
         ensure_tourism_defaults(race())
+        self.current_course_id = None
+        self.group_checkboxes = {}
 
         self.layout = QVBoxLayout(self)
 
         top_row = QHBoxLayout()
-        self.group_label = QLabel(translate('Group'))
-        self.group_combo = QComboBox()
-        top_row.addWidget(self.group_label)
-        top_row.addWidget(self.group_combo, 1)
+        self.course_label = QLabel('Туристская дистанция')
+        self.course_combo = QComboBox()
+        self.course_name = QLineEdit()
+        self.course_name.setPlaceholderText('Название дистанции')
+        self.btn_add_course = QPushButton('Добавить дистанцию')
+        self.btn_delete_course = QPushButton('Удалить дистанцию')
+
+        top_row.addWidget(self.course_label)
+        top_row.addWidget(self.course_combo, 1)
+        top_row.addWidget(self.course_name, 1)
+        top_row.addWidget(self.btn_add_course)
+        top_row.addWidget(self.btn_delete_course)
         self.layout.addLayout(top_row)
 
-        self.info_label = QLabel(translate('Enter stages for the selected group in the order they are passed'))
+        self.info_label = QLabel(
+            'Одна туристская дистанция может быть назначена нескольким группам. '
+            'Этапы задаются для дистанции, а группы ниже только привязываются к ней.'
+        )
+        self.info_label.setWordWrap(True)
         self.layout.addWidget(self.info_label)
+
+        self.groups_area = QScrollArea()
+        self.groups_widget = QWidget()
+        self.groups_layout = QVBoxLayout(self.groups_widget)
+        self.groups_area.setWidget(self.groups_widget)
+        self.groups_area.setWidgetResizable(True)
+        self.groups_area.setFixedHeight(130)
+        self.layout.addWidget(QLabel('Группы, которые используют эту дистанцию:'))
+        self.layout.addWidget(self.groups_area)
 
         self.table = QTableWidget(self)
         self.table.setColumnCount(2)
@@ -61,43 +93,203 @@ class TourismStagesDialog(QDialog):
         bottom_row.addWidget(self.btn_cancel)
         self.layout.addLayout(bottom_row)
 
+        self.btn_add_course.clicked.connect(self.add_course)
+        self.btn_delete_course.clicked.connect(self.delete_course)
         self.btn_add.clicked.connect(self.add_stage)
         self.btn_delete.clicked.connect(self.delete_stage)
         self.btn_up.clicked.connect(self.move_up)
         self.btn_down.clicked.connect(self.move_down)
         self.btn_save.clicked.connect(self.save)
         self.btn_cancel.clicked.connect(self.reject)
-        self.group_combo.currentIndexChanged.connect(self.load_data)
+        self.course_combo.currentIndexChanged.connect(self.change_course)
 
-        self.load_groups()
+        self.ensure_initial_courses()
+        self.load_courses()
         self.load_data()
 
-    def load_groups(self):
-        self.group_combo.clear()
+    def ensure_initial_courses(self):
+        obj = race()
+        ensure_tourism_defaults(obj)
+
+        if not getattr(obj, 'tourism_courses', []):
+            if obj.courses:
+                for course in obj.courses:
+                    obj.tourism_courses.append(
+                        TourismCourse(name=course.name or f'Дистанция {course.bib}')
+                    )
+            else:
+                obj.tourism_courses.append(TourismCourse(name='Дистанция 1'))
+
+    def load_courses(self):
+        self.course_combo.blockSignals(True)
+        self.course_combo.clear()
+
+        for course in race().tourism_courses:
+            self.course_combo.addItem(course.name, course.id)
+
+        self.course_combo.blockSignals(False)
+
+        if self.course_combo.count() > 0:
+            self.current_course_id = self.course_combo.currentData()
+
+    def get_current_course(self):
+        course_id = self.course_combo.currentData()
+        for course in race().tourism_courses:
+            if str(course.id) == str(course_id):
+                return course
+        return None
+
+    def save_current_course(self):
+        course = self.get_current_course()
+        if not course:
+            return
+
+        name = self.course_name.text().strip()
+        if not name:
+            raise ValueError('Название дистанции не может быть пустым')
+
+        stages = []
+        for row in range(self.table.rowCount()):
+            name_item = self.table.item(row, 1)
+            stage_name = name_item.text().strip() if name_item else ''
+            if not stage_name:
+                raise ValueError('Название этапа не может быть пустым')
+            stages.append(
+                TourismStage(
+                    tourism_course_id=str(course.id),
+                    order_num=row + 1,
+                    name=stage_name,
+                )
+            )
+
+        course.name = name
+        course.group_ids = [
+            str(group_id)
+            for group_id, checkbox in self.group_checkboxes.items()
+            if checkbox.isChecked()
+        ]
+
+        # Одна группа не должна быть одновременно в нескольких туристских дистанциях.
+        # Если группа отмечена у текущей дистанции, убираем её из остальных.
+        selected_group_ids = set(course.group_ids)
+        for other_course in getattr(race(), 'tourism_courses', []):
+            if str(other_course.id) == str(course.id):
+                continue
+            other_course.group_ids = [
+                str(x) for x in getattr(other_course, 'group_ids', [])
+                if str(x) not in selected_group_ids
+            ]
+
+        race().tourism_stages = [
+            x for x in race().tourism_stages
+            if str(getattr(x, 'tourism_course_id', '')) != str(course.id)
+        ]
+        race().tourism_stages.extend(stages)
+        normalize_tourism_links(race())
+
+    def change_course(self):
+        try:
+            if self.current_course_id:
+                self.save_current_course()
+        except Exception:
+            # Не мешаем переключению, пользователь сможет сохранить позже.
+            pass
+
+        self.current_course_id = self.course_combo.currentData()
+        self.load_data()
+
+    def load_groups(self, course):
+        while self.groups_layout.count():
+            item = self.groups_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.setParent(None)
+
+        self.group_checkboxes = {}
+
+        assigned = [str(x) for x in getattr(course, 'group_ids', [])]
+
         for group in race().groups:
-            group_type = getattr(group, 'get_competition_type', None)
-            current_type = group.get_competition_type() if callable(group_type) else getattr(group, 'competition_type', None) or getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
-            if current_type == CompetitionType.TOURISM.value:
-                self.group_combo.addItem(group.name, str(group.id))
+            group_type = (
+                group.get_competition_type()
+                if hasattr(group, 'get_competition_type')
+                else getattr(group, 'competition_type', None)
+            ) or getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
 
-    def get_current_group_id(self):
-        return self.group_combo.currentData()
+            if group_type != CompetitionType.TOURISM.value:
+                continue
 
-    def get_group_stages(self):
-        group_id = self.get_current_group_id()
-        stages = [x for x in race().tourism_stages if x.group_id == group_id]
-        return sorted(stages, key=lambda x: x.order_num)
+            checkbox = QCheckBox(group.name)
+            checkbox.setChecked(str(group.id) in assigned)
+            self.group_checkboxes[str(group.id)] = checkbox
+            self.groups_layout.addWidget(checkbox)
+
+        self.groups_layout.addStretch(1)
 
     def load_data(self):
-        stages = self.get_group_stages()
+        course = self.get_current_course()
+        if not course:
+            self.course_name.setText('')
+            self.table.setRowCount(0)
+            return
+
+        self.course_name.setText(course.name)
+        self.load_groups(course)
+
+        stages = [
+            x for x in race().tourism_stages
+            if str(getattr(x, 'tourism_course_id', '')) == str(course.id)
+        ]
+        stages = sorted(stages, key=lambda x: x.order_num)
+
         self.table.setRowCount(len(stages))
         for row, stage in enumerate(stages):
-            self.table.setItem(row, 0, QTableWidgetItem(str(stage.order_num)))
+            self.table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
             self.table.setItem(row, 1, QTableWidgetItem(stage.name))
 
     def normalize_order_numbers(self):
         for row in range(self.table.rowCount()):
             self.table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
+
+    def add_course(self):
+        try:
+            if self.current_course_id:
+                self.save_current_course()
+        except Exception as e:
+            QMessageBox.warning(self, translate('Error'), str(e))
+            return
+
+        number = len(race().tourism_courses) + 1
+        course = TourismCourse(name=f'Дистанция {number}')
+        race().tourism_courses.append(course)
+        self.load_courses()
+
+        index = self.course_combo.findData(course.id)
+        if index >= 0:
+            self.course_combo.setCurrentIndex(index)
+
+        self.load_data()
+
+    def delete_course(self):
+        course = self.get_current_course()
+        if not course:
+            return
+
+        course_id = str(course.id)
+        race().tourism_courses = [
+            x for x in race().tourism_courses
+            if str(x.id) != course_id
+        ]
+        race().tourism_stages = [
+            x for x in race().tourism_stages
+            if str(getattr(x, 'tourism_course_id', '')) != course_id
+        ]
+
+        if not race().tourism_courses:
+            race().tourism_courses.append(TourismCourse(name='Дистанция 1'))
+
+        self.load_courses()
+        self.load_data()
 
     def add_stage(self):
         row = self.table.rowCount()
@@ -137,20 +329,10 @@ class TourismStagesDialog(QDialog):
         self.normalize_order_numbers()
 
     def save(self):
-        group_id = self.get_current_group_id()
-        if not group_id:
-            QMessageBox.warning(self, translate('Error'), translate('Group is not selected'))
+        try:
+            self.save_current_course()
+        except Exception as e:
+            QMessageBox.warning(self, translate('Error'), str(e))
             return
 
-        stages = []
-        for row in range(self.table.rowCount()):
-            name_item = self.table.item(row, 1)
-            name = name_item.text().strip() if name_item else ''
-            if not name:
-                QMessageBox.warning(self, translate('Error'), translate('Stage name cannot be empty'))
-                return
-            stages.append(TourismStage(group_id=group_id, order_num=row + 1, name=name))
-
-        race().tourism_stages = [x for x in race().tourism_stages if x.group_id != group_id]
-        race().tourism_stages.extend(stages)
         self.accept()
