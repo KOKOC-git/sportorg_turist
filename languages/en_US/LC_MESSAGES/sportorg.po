@@ -1,3 +1,4 @@
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: SportOrg\n"
@@ -7,15 +8,14 @@ msgstr ""
 "Last-Translator: SportOrg\n"
 "Language-Team: SportOrg\n"
 "Language: en-US\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Loco-Source-Locale: en_US\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
 "X-Generator: Loco - https://localise.biz/\n"
+"X-Loco-Parser: loco_parse_po\n"
+"X-Loco-Source-Locale: en_US\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-Loco-Parser: loco_parse_po"
 
 msgid "SportOrg"
 msgstr "SportOrg"
@@ -85,3 +85,144 @@ msgstr "Penalty"
 
 msgid "Time settings"
 msgstr "Time"
+
+msgid "Tourism"
+msgstr "Tourism"
+
+msgid "Tourism stages"
+msgstr "Tourism stages"
+
+msgid "Tourism courses"
+msgstr "Tourism courses"
+
+msgid "Tourism course"
+msgstr "Tourism course"
+
+msgid "Tourism course is not selected"
+msgstr "Tourism course is not selected"
+
+msgid "Setup tourism stages"
+msgstr "Set up tourism stages"
+
+msgid "Configure tourism stages"
+msgstr "Configure tourism stages"
+
+msgid "Assign penalties / cutoff"
+msgstr "Assign penalties / cutoffs"
+
+msgid "Stage penalties"
+msgstr "Stage penalties"
+
+msgid "Assign penalties by stage"
+msgstr "Assign penalties by stage"
+
+msgid "Penalty time"
+msgstr "Penalty time"
+
+msgid "Penalty points"
+msgstr "Penalty points"
+
+msgid "Cutoff"
+msgstr "Cutoff"
+
+msgid "Stage DSQ"
+msgstr "Stage DSQ"
+
+msgid "Stage name"
+msgstr "Stage name"
+
+msgid "Stage"
+msgstr "Stage"
+
+msgid "Stages"
+msgstr "Stages"
+
+msgid "Add stage"
+msgstr "Add stage"
+
+msgid "Delete stage"
+msgstr "Delete stage"
+
+msgid "Add course"
+msgstr "Add course"
+
+msgid "Delete course"
+msgstr "Delete course"
+
+msgid "Course groups"
+msgstr "Course groups"
+
+msgid "Groups assigned to course"
+msgstr "Groups assigned to course"
+
+msgid "Enter stages for the selected course in the order they are passed"
+msgstr "Enter stages for the selected course in the order they are passed"
+
+msgid "This function is available only for Tourism competition type"
+msgstr "This function is available only for the Tourism competition type"
+
+msgid "No tourism stages found. Please create stages first"
+msgstr "No tourism stages found. Please create stages first"
+
+msgid "No stages configured for competitor group"
+msgstr "No stages configured for the competitor's group"
+
+msgid "Competitor group is not configured as Tourism"
+msgstr "The competitor's group is not configured as Tourism"
+
+msgid "Competitor not found"
+msgstr "Competitor not found"
+
+msgid "Find competitor"
+msgstr "Find competitor"
+
+msgid "Delete selected"
+msgstr "Delete selected"
+
+msgid "Stage name cannot be empty"
+msgstr "Stage name cannot be empty"
+
+msgid "Group is not selected"
+msgstr "Group is not selected"
+
+msgid "Judging mode"
+msgstr "Judging mode"
+
+msgid "Penalty"
+msgstr "Penalty"
+
+msgid "No penalty"
+msgstr "No penalty"
+
+msgid "Penalty mode"
+msgstr "Penalty mode"
+
+msgid "No-penalty mode"
+msgstr "No-penalty mode"
+
+msgid "Tourism: stages, penalties and cutoffs"
+msgstr "Tourism: stages, penalties and cutoffs"
+
+msgid ""
+"For Tourism competition type, classic courses are replaced by tourism "
+"stages."
+msgstr ""
+"For the Tourism competition type, classic courses are replaced by tourism "
+"stages."
+
+msgid ""
+"Click the button below to add, delete or reorder stages by tourism courses."
+msgstr ""
+"Click the button below to add, delete or reorder stages by tourism courses."
+
+msgid "Configure stages"
+msgstr "Configure stages"
+
+msgid "One penalty type is allowed: time or points"
+msgstr "Only one penalty type is allowed: time or points"
+
+msgid "No sanction specified"
+msgstr "No sanction specified"
+
+msgid "Cannot set both penalty time and penalty points"
+msgstr "Cannot set both penalty time and penalty points"

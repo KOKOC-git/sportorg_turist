@@ -1,3 +1,4 @@
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: SportOrg\n"
@@ -11,12 +12,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Loco-Source-Locale: ru_RU\n"
 "X-Generator: Poedit 3.4.1\n"
-"X-Poedit-SourceCharset: UTF-8\n"
 "X-Loco-Parser: loco_parse_po\n"
+"X-Loco-Source-Locale: ru_RU\n"
 "X-Poedit-Basepath: ../../../sportorg\n"
 "X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SourceCharset: UTF-8\n"
 
 msgid "About"
 msgstr "О нас"
@@ -553,7 +554,7 @@ msgid "HTML"
 msgstr ""
 
 msgid "Penalty time"
-msgstr "Штраф, время"
+msgstr "Штраф временем"
 
 msgid "Card number"
 msgstr "Номер чипа"
@@ -658,7 +659,7 @@ msgid "no penalty"
 msgstr "штраф не начисляется"
 
 msgid "No penalty"
-msgstr "Штраф не начисляется"
+msgstr "Без штрафа"
 
 msgid "penalty time"
 msgstr "штрафное время"
@@ -1431,8 +1432,12 @@ msgstr "Запустить/остановить чтение чипов RFID Imp
 msgid "allow duplicates"
 msgstr "считать все повторные отметки"
 
-msgid "Use this option to count one punch several times, e.g. in trails with ring punching"
-msgstr "Используйте эту опцию для учета всех повторяющихся отметок. Пример использования: трейл-забег в несколько кругов с отметкой на каждом круге"
+msgid ""
+"Use this option to count one punch several times, e.g. in trails with ring "
+"punching"
+msgstr ""
+"Используйте эту опцию для учета всех повторяющихся отметок. Пример "
+"использования: трейл-забег в несколько кругов с отметкой на каждом круге"
 
 msgid "Group not found"
 msgstr "Такой группы нет"
@@ -1606,7 +1611,9 @@ msgid "on/off SRPid readout"
 msgstr "Запустить/остановить чтение чипов SRPid"
 
 msgid "Cannot overwrite existing file with new"
-msgstr "Вы пытаетесь переписать существующий файл пустым новым файлом. Действие отменено."
+msgstr ""
+"Вы пытаетесь переписать существующий файл пустым новым файлом. Действие "
+"отменено."
 
 msgid "File lock created"
 msgstr "Файл заблокирован"
@@ -1651,7 +1658,142 @@ msgid "Orgeo.ru CSV"
 msgstr "Файл финиша orgeo.ru, CSV"
 
 msgid "Open orgeo.ru finish CSV file"
-msgstr "Открыть файл финиша orgeo.ru, CSV (https://orgeo.ru/event/export?event_id=XXX&sub_id=Y&format=excel_finish)"
+msgstr ""
+"Открыть файл финиша orgeo.ru, CSV "
+"(https://orgeo.ru/event/export?event_id=XXX&sub_id=Y&format=excel_finish)"
 
 msgid "Miss penalty lap"
 msgstr "Пропущен штрафной круг"
+
+msgid "Tourism"
+msgstr "Туризм"
+
+msgid "Tourism stages"
+msgstr "Этапы туризма"
+
+msgid "Tourism courses"
+msgstr "Дистанции туризма"
+
+msgid "Tourism course"
+msgstr "Дистанция туризма"
+
+msgid "Tourism course is not selected"
+msgstr "Дистанция туризма не выбрана"
+
+msgid "Setup tourism stages"
+msgstr "Настроить этапы туризма"
+
+msgid "Configure tourism stages"
+msgstr "Настроить этапы туризма"
+
+msgid "Assign penalties / cutoff"
+msgstr "Назначить штрафы / отсечки"
+
+msgid "Stage penalties"
+msgstr "Штрафы по этапу"
+
+msgid "Assign penalties by stage"
+msgstr "Назначить штрафы по этапу"
+
+msgid "Penalty points"
+msgstr "Штраф баллами"
+
+msgid "Cutoff"
+msgstr "Отсечка"
+
+msgid "Stage DSQ"
+msgstr "Снятие с этапа"
+
+msgid "Stage name"
+msgstr "Название этапа"
+
+msgid "Stage"
+msgstr "Этап"
+
+msgid "Stages"
+msgstr "Этапы"
+
+msgid "Add stage"
+msgstr "Добавить этап"
+
+msgid "Delete stage"
+msgstr "Удалить этап"
+
+msgid "Add course"
+msgstr "Добавить дистанцию"
+
+msgid "Delete course"
+msgstr "Удалить дистанцию"
+
+msgid "Course groups"
+msgstr "Группы дистанции"
+
+msgid "Groups assigned to course"
+msgstr "Группы, назначенные на дистанцию"
+
+msgid "Enter stages for the selected course in the order they are passed"
+msgstr "Введите этапы выбранной дистанции в порядке их прохождения"
+
+msgid "This function is available only for Tourism competition type"
+msgstr "Эта функция доступна только для вида соревнований «Туризм»"
+
+msgid "No tourism stages found. Please create stages first"
+msgstr "Этапы туризма не найдены. Сначала создайте этапы"
+
+msgid "No stages configured for competitor group"
+msgstr "Для группы участника не настроены этапы"
+
+msgid "Competitor group is not configured as Tourism"
+msgstr "Группа участника не настроена как «Туризм»"
+
+msgid "Competitor not found"
+msgstr "Участник не найден"
+
+msgid "Find competitor"
+msgstr "Найти участника"
+
+msgid "Delete selected"
+msgstr "Удалить выбранное"
+
+msgid "Stage name cannot be empty"
+msgstr "Название этапа не может быть пустым"
+
+msgid "Group is not selected"
+msgstr "Группа не выбрана"
+
+msgid "Judging mode"
+msgstr "Система судейства"
+
+msgid "Penalty mode"
+msgstr "Штрафная система"
+
+msgid "No-penalty mode"
+msgstr "Система без штрафа"
+
+msgid "Tourism: stages, penalties and cutoffs"
+msgstr "Туризм: этапы, штрафы и отсечки"
+
+msgid ""
+"For Tourism competition type, classic courses are replaced by tourism "
+"stages."
+msgstr ""
+"Для вида соревнований «Туризм» классические дистанции заменяются этапами "
+"туризма."
+
+msgid ""
+"Click the button below to add, delete or reorder stages by tourism courses."
+msgstr ""
+"Нажмите кнопку ниже, чтобы добавить, удалить или изменить порядок этапов по "
+"туристским дистанциям."
+
+msgid "Configure stages"
+msgstr "Настроить этапы"
+
+msgid "One penalty type is allowed: time or points"
+msgstr "Можно указать только один тип штрафа: временем или баллами"
+
+msgid "No sanction specified"
+msgstr "Не указана ни одна санкция"
+
+msgid "Cannot set both penalty time and penalty points"
+msgstr "Нельзя одновременно задать штраф временем и штраф баллами"
