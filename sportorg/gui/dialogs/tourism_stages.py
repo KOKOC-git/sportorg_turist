@@ -22,7 +22,7 @@ from sportorg.models.tourism import (
     CompetitionType,
     TourismCourse,
     TourismStage,
-    ensure_tourism_defaults,
+    ensure_tourism_defaults, normalize_tourism_links,
 )
 
 
@@ -164,16 +164,28 @@ class TourismStagesDialog(QDialog):
 
         course.name = name
         course.group_ids = [
-            group_id
+            str(group_id)
             for group_id, checkbox in self.group_checkboxes.items()
             if checkbox.isChecked()
         ]
+
+        # Одна группа не должна быть одновременно в нескольких туристских дистанциях.
+        # Если группа отмечена у текущей дистанции, убираем её из остальных.
+        selected_group_ids = set(course.group_ids)
+        for other_course in getattr(race(), 'tourism_courses', []):
+            if str(other_course.id) == str(course.id):
+                continue
+            other_course.group_ids = [
+                str(x) for x in getattr(other_course, 'group_ids', [])
+                if str(x) not in selected_group_ids
+            ]
 
         race().tourism_stages = [
             x for x in race().tourism_stages
             if str(getattr(x, 'tourism_course_id', '')) != str(course.id)
         ]
         race().tourism_stages.extend(stages)
+        normalize_tourism_links(race())
 
     def change_course(self):
         try:

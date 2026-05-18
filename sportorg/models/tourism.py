@@ -172,19 +172,69 @@ def find_tourism_course_for_group(obj: Any, group_id: str) -> Optional[TourismCo
     return None
 
 
-def get_tourism_stages_for_group(obj: Any, group_id: str) -> List[TourismStage]:
-    ensure_tourism_defaults(obj)
-    course = find_tourism_course_for_group(obj, group_id)
-    if not course:
-        return []
+def get_tourism_stages_for_group(obj: Any, group_id: str):
+    """
+    Возвращает этапы для группы.
 
+    Основная схема:
+    group_id -> tourism_course.group_ids -> tourism_stages.tourism_course_id
+
+    Резервные схемы нужны потому, что в ходе доработок могли сохраниться данные:
+    - этапы напрямую по stage.group_id;
+    - этапы по tourism_course_id, но group_ids ещё не записались;
+    - одна туристская дистанция есть, этапы есть, но связь с группой потеряна.
+    """
+    normalize_tourism_links(obj)
+    group_id = str(group_id)
+
+    all_stages = list(getattr(obj, "tourism_stages", []) or [])
+    all_courses = list(getattr(obj, "tourism_courses", []) or [])
+
+    # 1. Основная схема: группа отмечена чекбоксом у туристской дистанции.
+    course = get_tourism_course_for_group(obj, group_id)
+    if course:
+        course_id = str(course.id)
+        stages = [
+            stage for stage in all_stages
+            if str(getattr(stage, "tourism_course_id", "") or "") == course_id
+        ]
+        if stages:
+            return sorted(stages, key=lambda x: int(getattr(x, "order_num", 0) or 0))
+
+    # 2. Старая схема: этапы были привязаны напрямую к группе.
     stages = [
-        x for x in obj.tourism_stages
-        if str(getattr(x, "tourism_course_id", "")) == str(course.id)
+        stage for stage in all_stages
+        if str(getattr(stage, "group_id", "") or "") == group_id
     ]
+    if stages:
+        return sorted(stages, key=lambda x: int(getattr(x, "order_num", 0) or 0))
 
-    return sorted(stages, key=lambda x: x.order_num)
+    # 3. Резерв: если есть ровно одна туристская дистанция с этапами,
+    # показываем её этапы. Это удобно для типового случая:
+    # одна дистанция + несколько групп.
+    course_ids_with_stages = []
+    for course in all_courses:
+        course_id = str(course.id)
+        stages_for_course = [
+            stage for stage in all_stages
+            if str(getattr(stage, "tourism_course_id", "") or "") == course_id
+        ]
+        if stages_for_course:
+            course_ids_with_stages.append((course_id, stages_for_course))
 
+    if len(course_ids_with_stages) == 1:
+        return sorted(
+            course_ids_with_stages[0][1],
+            key=lambda x: int(getattr(x, "order_num", 0) or 0)
+        )
+
+    # 4. Последний резерв: если туристских дистанций нет или они пустые,
+    # но этапы вообще есть, показываем все этапы.
+    # Это помогает не потерять этапы, созданные ранними версиями патча.
+    if all_stages and not all_courses:
+        return sorted(all_stages, key=lambda x: int(getattr(x, "order_num", 0) or 0))
+
+    return []
 
 def ensure_tourism_defaults(obj: Any) -> None:
     if not hasattr(obj, "competition_type"):
@@ -269,3 +319,68 @@ def get_stage_name(obj: Any, stage_id: str) -> str:
         if str(stage.id) == str(stage_id):
             return stage.name
     return ""
+
+
+# --- tourism group/course/stage link helpers ---
+
+def normalize_tourism_links(obj: Any) -> None:
+    """
+    Приводит связи туризма к единому виду:
+    - у каждой туристской дистанции group_ids хранятся строками;
+    - этапы ищутся через tourism_course_id;
+    - старая схема stage.group_id сохраняется как резервная.
+    """
+    ensure_tourism_defaults(obj)
+
+    for course in getattr(obj, "tourism_courses", []):
+        course.group_ids = [str(x) for x in getattr(course, "group_ids", []) if str(x)]
+
+    for stage in getattr(obj, "tourism_stages", []):
+        if hasattr(stage, "tourism_course_id"):
+            stage.tourism_course_id = str(getattr(stage, "tourism_course_id", "") or "")
+        if hasattr(stage, "group_id"):
+            stage.group_id = str(getattr(stage, "group_id", "") or "")
+
+
+def get_tourism_course_for_group(obj: Any, group_id: str):
+    """
+    Возвращает туристскую дистанцию, к которой привязана группа.
+    """
+    normalize_tourism_links(obj)
+    group_id = str(group_id)
+
+    for course in getattr(obj, "tourism_courses", []):
+        if group_id in [str(x) for x in getattr(course, "group_ids", [])]:
+            return course
+
+    return None
+
+
+def get_tourism_stages_for_group(obj: Any, group_id: str):
+    """
+    Возвращает этапы для группы:
+    1) основная схема: group -> tourism_course.group_ids -> stages.tourism_course_id;
+    2) резервная старая схема: stages.group_id.
+    """
+    normalize_tourism_links(obj)
+    group_id = str(group_id)
+
+    course = get_tourism_course_for_group(obj, group_id)
+    stages = []
+
+    if course:
+        course_id = str(course.id)
+        stages = [
+            x for x in getattr(obj, "tourism_stages", [])
+            if str(getattr(x, "tourism_course_id", "")) == course_id
+        ]
+
+    # Резерв для старых данных, если этапы ещё записаны напрямую на группу.
+    if not stages:
+        stages = [
+            x for x in getattr(obj, "tourism_stages", [])
+            if str(getattr(x, "group_id", "")) == group_id
+        ]
+
+    return sorted(stages, key=lambda x: int(getattr(x, "order_num", 0) or 0))
+

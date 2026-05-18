@@ -14,7 +14,7 @@ from sportorg.gui.global_access import GlobalAccess
 from sportorg.language import translate
 from sportorg.models.constant import get_race_courses
 from sportorg.models.memory import Limit, RaceType, find, race
-from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults
+from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults, normalize_tourism_links, ensure_tourism_defaults
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.modules.live.live import live_client
 from sportorg.modules.teamwork.teamwork import Teamwork
@@ -195,6 +195,35 @@ class GroupEditDialog(BaseDialog):
         self.update_tourism_fields_visibility()
 
 
+
+    def get_tourism_course_items(self):
+        ensure_tourism_defaults(race())
+        normalize_tourism_links(race())
+        return [''] + [x.name for x in getattr(race(), 'tourism_courses', [])]
+
+    def convert_tourism_course(self, _):
+        ensure_tourism_defaults(race())
+        normalize_tourism_links(race())
+
+        group_id = str(self.current_object.id)
+        for tourism_course in getattr(race(), 'tourism_courses', []):
+            if group_id in [str(x) for x in getattr(tourism_course, 'group_ids', [])]:
+                return tourism_course.name
+        return ''
+
+    def parse_tourism_course(self, text):
+        ensure_tourism_defaults(race())
+        normalize_tourism_links(race())
+
+        if not text:
+            return None
+
+        for tourism_course in getattr(race(), 'tourism_courses', []):
+            if tourism_course.name == text:
+                return tourism_course
+        return None
+
+
     def get_competition_type_titles(self):
         return [
             translate('Inherit from event'),
@@ -357,6 +386,29 @@ class GroupEditDialog(BaseDialog):
                     if str(tourism_course.id) == str(selected_course.id):
                         tourism_course.group_ids.append(group_id)
                         break
+
+        ensure_tourism_defaults(race())
+        normalize_tourism_links(race())
+
+        selected_course = getattr(self, 'tourism_course', None)
+        group_id = str(group.id)
+
+        # Убираем группу из всех туристских дистанций.
+        for tourism_course in getattr(race(), 'tourism_courses', []):
+            tourism_course.group_ids = [
+                str(x) for x in getattr(tourism_course, 'group_ids', [])
+                if str(x) != group_id
+            ]
+
+        # Добавляем в выбранную.
+        if selected_course:
+            for tourism_course in getattr(race(), 'tourism_courses', []):
+                if str(tourism_course.id) == str(selected_course.id):
+                    if group_id not in [str(x) for x in tourism_course.group_ids]:
+                        tourism_course.group_ids.append(group_id)
+                    break
+
+        normalize_tourism_links(race())
 
         ResultCalculation(race()).set_rank(group)
         live_client.send(group)

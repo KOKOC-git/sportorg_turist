@@ -5,7 +5,6 @@ from datetime import datetime
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QDialog,
     QFormLayout,
     QHBoxLayout,
@@ -39,225 +38,320 @@ class TourismPenaltiesDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(translate('Assign penalties / cutoff'))
-        self.resize(980, 680)
+        self.resize(1050, 700)
 
         ensure_tourism_defaults(race())
 
+        self.current_person = None
+        self.stage_ids = []
+
         self.layout = QVBoxLayout(self)
 
-        self.top_form = QFormLayout()
+        self._build_search_block()
+        self._build_stage_table()
+        self._build_bottom_buttons()
+
+        self.btn_find.clicked.connect(self.find_competitor)
+        self.btn_save.clicked.connect(self.save_all_decisions)
+        self.btn_clear.clicked.connect(self.clear_for_current_person)
+        self.btn_close.clicked.connect(self.accept)
+
+        self.find_competitor()
+        self.recalc_results()
+
+    def _build_search_block(self):
+        search_widget = QWidget(self)
+        search_layout = QFormLayout(search_widget)
 
         self.person_bib = QLineEdit()
         self.person_name = QLineEdit()
-        self.person_group = QLabel('')
-        self.stage_combo = QComboBox()
+        self.person_info = QLabel('')
 
-        self.top_form.addRow(translate('Bib'), self.person_bib)
-        self.top_form.addRow(translate('Surname'), self.person_name)
-        self.top_form.addRow(translate('Group'), self.person_group)
-        self.top_form.addRow(translate('Stage'), self.stage_combo)
+        search_layout.addRow(translate('Bib'), self.person_bib)
+        search_layout.addRow(translate('Surname'), self.person_name)
+        search_layout.addRow(translate('Competitor'), self.person_info)
 
-        self.layout.addLayout(self.top_form)
-
-        sanctions_widget = QWidget()
-        sanctions_layout = QFormLayout(sanctions_widget)
-
-        self.penalty_time = QLineEdit()
-        self.penalty_time.setPlaceholderText('HH:MM:SS')
-        self.penalty_points = QLineEdit()
-        self.penalty_points.setPlaceholderText('0')
-        self.cutoff_time = QLineEdit()
-        self.cutoff_time.setPlaceholderText('HH:MM:SS')
-        self.stage_dsq = QCheckBox(translate('Stage DSQ'))
-        self.comment = QTextEdit()
-        self.comment.setFixedHeight(90)
-
-        sanctions_layout.addRow(translate('Penalty time'), self.penalty_time)
-        sanctions_layout.addRow(translate('Penalty points'), self.penalty_points)
-        sanctions_layout.addRow(translate('Cutoff'), self.cutoff_time)
-        sanctions_layout.addRow('', self.stage_dsq)
-        sanctions_layout.addRow(translate('Comment'), self.comment)
-
-        self.layout.addWidget(sanctions_widget)
+        self.layout.addWidget(search_widget)
 
         btn_row = QHBoxLayout()
         self.btn_find = QPushButton(translate('Find competitor'))
-        self.btn_save = QPushButton(translate('Save'))
-        self.btn_delete = QPushButton(translate('Delete selected'))
-        self.btn_close = QPushButton(translate('Close'))
         btn_row.addWidget(self.btn_find)
         btn_row.addStretch(1)
-        btn_row.addWidget(self.btn_save)
-        btn_row.addWidget(self.btn_delete)
-        btn_row.addWidget(self.btn_close)
         self.layout.addLayout(btn_row)
 
+    def _build_stage_table(self):
         self.table = QTableWidget(self)
-        self.table.setColumnCount(8)
+        self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels([
-            translate('Bib'),
-            translate('Name'),
-            translate('Group'),
             translate('Stage'),
             translate('Penalty time'),
             translate('Penalty points'),
             translate('Cutoff'),
             translate('Stage DSQ'),
+            translate('Comment'),
         ])
         self.layout.addWidget(self.table)
 
-        self.stage_dsq.stateChanged.connect(self.on_stage_dsq_changed)
-        self.btn_find.clicked.connect(self.sync_competitor_and_stages)
-        self.btn_save.clicked.connect(self.save_decision)
-        self.btn_delete.clicked.connect(self.delete_selected)
-        self.btn_close.clicked.connect(self.accept)
+        hint = QLabel(
+            'Заполните санкции по этапам. '
+            'Если строка пустая — решение по этому этапу не сохраняется. '
+            'Отсечку можно указывать и в режиме «Без штрафа».'
+        )
+        hint.setWordWrap(True)
+        self.layout.addWidget(hint)
 
-        self._apply_judging_mode()
-        self.sync_competitor_and_stages()
-        self.recalc_results()
-        self.reload_table()
+    def _build_bottom_buttons(self):
+        btn_row = QHBoxLayout()
+        self.btn_save = QPushButton(translate('Save'))
+        self.btn_clear = QPushButton('Очистить решения участника')
+        self.btn_close = QPushButton(translate('Close'))
 
-    def _apply_judging_mode(self):
-        mode = getattr(race(), 'tourism_judging_mode', TourismJudgingMode.PENALTY.value)
-        is_penalty_mode = mode == TourismJudgingMode.PENALTY.value
-        self.penalty_time.setVisible(is_penalty_mode)
-        self.penalty_points.setVisible(is_penalty_mode)
-        self.penalty_time.setEnabled(is_penalty_mode and not self.stage_dsq.isChecked())
-        self.penalty_points.setEnabled(is_penalty_mode and not self.stage_dsq.isChecked())
+        btn_row.addStretch(1)
+        btn_row.addWidget(self.btn_save)
+        btn_row.addWidget(self.btn_clear)
+        btn_row.addWidget(self.btn_close)
 
-    def on_stage_dsq_changed(self):
-        is_penalty_mode = getattr(race(), 'tourism_judging_mode', TourismJudgingMode.PENALTY.value) == TourismJudgingMode.PENALTY.value
-        self.penalty_time.setEnabled(is_penalty_mode and not self.stage_dsq.isChecked())
-        self.penalty_points.setEnabled(is_penalty_mode and not self.stage_dsq.isChecked())
-        if self.stage_dsq.isChecked():
-            self.penalty_time.setText('')
-            self.penalty_points.setText('')
+        self.layout.addLayout(btn_row)
 
     def _find_person(self):
         obj = race()
         bib = self.person_bib.text().strip()
         name = self.person_name.text().strip().lower()
+
+        if not bib and not name:
+            return None
+
         for person in obj.persons:
             if bib and str(getattr(person, 'bib', '')).strip() == bib:
                 return person
-            if name and name in str(getattr(person, 'name', '')).lower():
+
+        for person in obj.persons:
+            full_name = str(getattr(person, 'full_name', '') or '').lower()
+            simple_name = str(getattr(person, 'name', '') or '').lower()
+            surname = str(getattr(person, 'surname', '') or '').lower()
+
+            if name and (
+                name in full_name
+                or name in simple_name
+                or name in surname
+            ):
                 return person
+
         return None
 
-    def sync_competitor_and_stages(self):
-        self.stage_combo.clear()
-        person = self._find_person()
+    def _is_tourism_person(self, person):
         if not person or not person.group:
-            self.person_group.setText('')
+            return False
+
+        group_type = (
+            person.group.get_competition_type()
+            if hasattr(person.group, 'get_competition_type')
+            else getattr(person.group, 'competition_type', None)
+        )
+
+        if not group_type:
+            group_type = getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
+
+        return group_type == CompetitionType.TOURISM.value
+
+    def find_competitor(self):
+        self.current_person = self._find_person()
+
+        if not self.current_person:
+            self.person_info.setText('Участник не найден')
+            self.load_empty_table()
             return
 
-        group_type = person.group.get_competition_type() if hasattr(person.group, 'get_competition_type') else getattr(person.group, 'competition_type', None) or getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
-        self.person_group.setText(person.group.name)
-        if group_type != CompetitionType.TOURISM.value:
+        person = self.current_person
+
+        if not self._is_tourism_person(person):
+            self.person_info.setText('Участник найден, но его группа не относится к виду «Туризм»')
+            self.load_empty_table()
+            return
+
+        group_name = person.group.name if person.group else ''
+        self.person_info.setText(f'{person.full_name} | группа: {group_name}')
+
+        self.load_stage_table()
+
+    def load_empty_table(self):
+        self.stage_ids = []
+        self.table.setRowCount(0)
+
+    def _find_existing_decision(self, stage_id, person_id):
+        for decision in getattr(race(), 'tourism_stage_decisions', []):
+            if (
+                str(decision.stage_id) == str(stage_id)
+                and str(decision.person_id) == str(person_id)
+            ):
+                return decision
+        return None
+
+    def load_stage_table(self):
+        person = self.current_person
+        if not person or not person.group:
+            self.load_empty_table()
             return
 
         stages = get_tourism_stages_for_group(race(), str(person.group.id))
-        for stage in stages:
-            self.stage_combo.addItem(f'{stage.order_num}. {stage.name}', stage.id)
 
-    def _get_current_stage_id(self):
-        return self.stage_combo.currentData()
+        self.stage_ids = [str(stage.id) for stage in stages]
+        self.table.setRowCount(len(stages))
 
-    def _find_stage_name(self, stage_id):
-        for stage in race().tourism_stages:
-            if stage.id == stage_id:
-                return stage.name
-        return ''
+        person_id = str(person.id)
+        mode = getattr(race(), 'tourism_judging_mode', TourismJudgingMode.PENALTY.value)
+        is_penalty_mode = mode == TourismJudgingMode.PENALTY.value
 
-    def _get_decisions_for_current_group(self):
-        person = self._find_person()
-        if not person:
-            return []
-        return [d for d in race().tourism_stage_decisions if d.person_id == str(person.id)]
+        for row, stage in enumerate(stages):
+            decision = self._find_existing_decision(stage.id, person_id)
 
-    def _find_existing_decision(self, stage_id: str, person_id: str):
-        for d in race().tourism_stage_decisions:
-            if d.stage_id == stage_id and d.person_id == person_id:
-                return d
-        return None
+            stage_item = QTableWidgetItem(f'{stage.order_num}. {stage.name}')
+            stage_item.setFlags(stage_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 0, stage_item)
 
-    def recalc_results(self):
-        TourismResultCalculator.apply(race())
-        ResultCalculation(race()).process_results()
+            penalty_time = QLineEdit()
+            penalty_time.setPlaceholderText('HH:MM:SS')
+            penalty_time.setEnabled(is_penalty_mode)
 
-    def save_decision(self):
-        person = self._find_person()
+            penalty_points = QLineEdit()
+            penalty_points.setPlaceholderText('0')
+            penalty_points.setEnabled(is_penalty_mode)
+
+            cutoff_time = QLineEdit()
+            cutoff_time.setPlaceholderText('HH:MM:SS')
+
+            stage_dsq = QCheckBox()
+
+            comment = QTextEdit()
+            comment.setFixedHeight(45)
+
+            if decision:
+                if decision.penalty_time_sec:
+                    penalty_time.setText(sec_to_hms(decision.penalty_time_sec))
+                if decision.penalty_points:
+                    penalty_points.setText(str(decision.penalty_points))
+                if decision.cutoff_time_sec:
+                    cutoff_time.setText(sec_to_hms(decision.cutoff_time_sec))
+                stage_dsq.setChecked(bool(decision.is_stage_dsq))
+                comment.setPlainText(decision.comment or '')
+
+            def make_dsq_handler(pt, pp, dsq):
+                def handler():
+                    checked = dsq.isChecked()
+                    pt.setEnabled(is_penalty_mode and not checked)
+                    pp.setEnabled(is_penalty_mode and not checked)
+                    if checked:
+                        pt.setText('')
+                        pp.setText('')
+                return handler
+
+            stage_dsq.stateChanged.connect(
+                make_dsq_handler(penalty_time, penalty_points, stage_dsq)
+            )
+            make_dsq_handler(penalty_time, penalty_points, stage_dsq)()
+
+            self.table.setCellWidget(row, 1, penalty_time)
+            self.table.setCellWidget(row, 2, penalty_points)
+            self.table.setCellWidget(row, 3, cutoff_time)
+            self.table.setCellWidget(row, 4, stage_dsq)
+            self.table.setCellWidget(row, 5, comment)
+
+        self.table.resizeColumnsToContents()
+
+    def _row_values(self, row):
+        penalty_time_widget = self.table.cellWidget(row, 1)
+        penalty_points_widget = self.table.cellWidget(row, 2)
+        cutoff_widget = self.table.cellWidget(row, 3)
+        dsq_widget = self.table.cellWidget(row, 4)
+        comment_widget = self.table.cellWidget(row, 5)
+
+        penalty_time_text = penalty_time_widget.text().strip() if penalty_time_widget else ''
+        penalty_points_text = penalty_points_widget.text().strip() if penalty_points_widget else ''
+        cutoff_text = cutoff_widget.text().strip() if cutoff_widget else ''
+        is_dsq = dsq_widget.isChecked() if dsq_widget else False
+        comment = comment_widget.toPlainText().strip() if comment_widget else ''
+
+        penalty_time_sec = hms_to_sec(penalty_time_text)
+        penalty_points = int(penalty_points_text or '0')
+        cutoff_time_sec = hms_to_sec(cutoff_text)
+
+        return penalty_time_sec, penalty_points, cutoff_time_sec, is_dsq, comment
+
+    def save_all_decisions(self):
+        person = self.current_person
         if not person:
             QMessageBox.warning(self, translate('Error'), translate('Competitor not found'))
             return
 
-        if hasattr(person.group, 'get_competition_type') and person.group.get_competition_type() != CompetitionType.TOURISM.value:
+        if not self._is_tourism_person(person):
             QMessageBox.warning(self, translate('Error'), translate('Competitor group is not configured as Tourism'))
             return
 
-        stage_id = self._get_current_stage_id()
-        if not stage_id:
-            QMessageBox.warning(self, translate('Error'), translate('No stages configured for competitor group'))
-            return
-
-        mode = TourismJudgingMode(getattr(race(), 'tourism_judging_mode', TourismJudgingMode.PENALTY.value))
-        existing = self._find_existing_decision(stage_id, str(person.id))
-        decision = existing or TourismStageDecision(stage_id=stage_id, person_id=str(person.id))
+        person_id = str(person.id)
+        mode = TourismJudgingMode(
+            getattr(race(), 'tourism_judging_mode', TourismJudgingMode.PENALTY.value)
+        )
 
         try:
-            decision.penalty_time_sec = hms_to_sec(self.penalty_time.text())
-            decision.penalty_points = int(self.penalty_points.text() or '0')
-            decision.cutoff_time_sec = hms_to_sec(self.cutoff_time.text())
-            decision.is_stage_dsq = self.stage_dsq.isChecked()
-            decision.comment = self.comment.toPlainText().strip()
-            decision.updated_at = datetime.utcnow().isoformat()
-            decision.validate(mode)
+            for row, stage_id in enumerate(self.stage_ids):
+                penalty_time_sec, penalty_points, cutoff_time_sec, is_dsq, comment = self._row_values(row)
+
+                existing = self._find_existing_decision(stage_id, person_id)
+
+                is_empty = (
+                    not is_dsq
+                    and penalty_time_sec == 0
+                    and penalty_points == 0
+                    and cutoff_time_sec == 0
+                    and not comment
+                )
+
+                if is_empty:
+                    if existing:
+                        race().tourism_stage_decisions = [
+                            d for d in race().tourism_stage_decisions
+                            if d.id != existing.id
+                        ]
+                    continue
+
+                decision = existing or TourismStageDecision(
+                    stage_id=str(stage_id),
+                    person_id=person_id,
+                )
+
+                decision.penalty_time_sec = penalty_time_sec
+                decision.penalty_points = penalty_points
+                decision.cutoff_time_sec = cutoff_time_sec
+                decision.is_stage_dsq = is_dsq
+                decision.comment = comment
+                decision.updated_at = datetime.utcnow().isoformat()
+                decision.validate(mode)
+
+                if existing is None:
+                    race().tourism_stage_decisions.append(decision)
+
         except Exception as e:
             QMessageBox.warning(self, translate('Error'), str(e))
             return
 
-        if existing is None:
-            race().tourism_stage_decisions.append(decision)
+        self.recalc_results()
+        self.load_stage_table()
+        QMessageBox.information(self, translate('Save'), 'Штрафы и отсечки сохранены')
+
+    def clear_for_current_person(self):
+        person = self.current_person
+        if not person:
+            return
+
+        person_id = str(person.id)
+        race().tourism_stage_decisions = [
+            d for d in race().tourism_stage_decisions
+            if str(d.person_id) != person_id
+        ]
 
         self.recalc_results()
-        self.reload_table()
-        self.clear_form()
+        self.load_stage_table()
 
-    def clear_form(self):
-        self.penalty_time.setText('')
-        self.penalty_points.setText('')
-        self.cutoff_time.setText('')
-        self.stage_dsq.setChecked(False)
-        self.comment.setPlainText('')
-
-    def reload_table(self):
-        decisions = race().tourism_stage_decisions
-        self.table.setRowCount(len(decisions))
-        person_map = {str(p.id): p for p in race().persons}
-        for row, d in enumerate(decisions):
-            person = person_map.get(d.person_id)
-            bib = str(getattr(person, 'bib', '')) if person else ''
-            name = str(getattr(person, 'name', '')) if person else ''
-            group_name = person.group.name if person and person.group else ''
-            stage_name = self._find_stage_name(d.stage_id)
-            self.table.setItem(row, 0, QTableWidgetItem(bib))
-            self.table.setItem(row, 1, QTableWidgetItem(name))
-            self.table.setItem(row, 2, QTableWidgetItem(group_name))
-            self.table.setItem(row, 3, QTableWidgetItem(stage_name))
-            self.table.setItem(row, 4, QTableWidgetItem(sec_to_hms(d.penalty_time_sec)))
-            self.table.setItem(row, 5, QTableWidgetItem(str(d.penalty_points)))
-            self.table.setItem(row, 6, QTableWidgetItem(sec_to_hms(d.cutoff_time_sec)))
-            self.table.setItem(row, 7, QTableWidgetItem(translate('Yes') if d.is_stage_dsq else ''))
-            self.table.item(row, 0).setData(Qt.UserRole, d.id)
-
-    def delete_selected(self):
-        row = self.table.currentRow()
-        if row < 0:
-            return
-        item = self.table.item(row, 0)
-        if item is None:
-            return
-        decision_id = item.data(Qt.UserRole)
-        race().tourism_stage_decisions = [d for d in race().tourism_stage_decisions if d.id != decision_id]
-        self.recalc_results()
-        self.reload_table()
+    def recalc_results(self):
+        TourismResultCalculator.apply(race())
+        ResultCalculation(race()).process_results()
