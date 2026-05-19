@@ -1707,3 +1707,21 @@ msgstr "Tourism team"
 
 msgid "Tourism team leg"
 msgstr "Tourism team leg"
+
+msgid "Tourism team results"
+msgstr "Tourism team results"
+
+msgid "Result bib"
+msgstr "Result bib"
+
+msgid "Warning"
+msgstr "Warning"
+
+msgid "Several finishes in one tourism team"
+msgstr "Several finishes in one tourism team"
+
+msgid "Numbers by age groups"
+msgstr "Numbers by age groups"
+
+msgid "Numbers by teams"
+msgstr "Numbers by teams"

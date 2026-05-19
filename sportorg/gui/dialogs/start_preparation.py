@@ -17,6 +17,10 @@ from sportorg.models.start.start_preparation import (
     StartNumberManager,
     StartTimeManager,
 )
+from sportorg.services.start_numbering import (
+    assign_start_numbers_by_group,
+    assign_start_numbers_by_organization,
+)
 
 
 class StartPreparationDialog(QDialog):
@@ -174,9 +178,9 @@ class StartPreparationDialog(QDialog):
         self.start_check_box.stateChanged.connect(self.start_activate)
 
         self.numbers_group_box = QtWidgets.QGroupBox(self)
-        self.numbers_group_box.setGeometry(QtCore.QRect(365, 150, 350, 150))
+        self.numbers_group_box.setGeometry(QtCore.QRect(365, 150, 350, 210))
         self.widget_numbers = QtWidgets.QWidget(self.numbers_group_box)
-        self.widget_numbers.setGeometry(QtCore.QRect(18, 20, 300, 94))
+        self.widget_numbers.setGeometry(QtCore.QRect(18, 20, 320, 150))
         self.numbers_vert_layout = QtWidgets.QVBoxLayout(self.widget_numbers)
         self.numbers_vert_layout.setContentsMargins(0, 0, 0, 0)
         self.numbers_check_box = QtWidgets.QCheckBox(self.widget_numbers)
@@ -208,9 +212,22 @@ class StartPreparationDialog(QDialog):
         self.numbers_order_radio_button.setEnabled(False)
         self.numbers_order_radio_button.setChecked(False)
         self.numbers_vert_layout.addWidget(self.numbers_order_radio_button)
+
+        self.numbers_by_group_radio_button = QtWidgets.QRadioButton(self.widget_numbers)
+        self.numbers_by_group_radio_button.setEnabled(False)
+        self.numbers_by_group_radio_button.setChecked(False)
+        self.numbers_vert_layout.addWidget(self.numbers_by_group_radio_button)
+
+        self.numbers_by_team_radio_button = QtWidgets.QRadioButton(self.widget_numbers)
+        self.numbers_by_team_radio_button.setEnabled(False)
+        self.numbers_by_team_radio_button.setChecked(False)
+        self.numbers_vert_layout.addWidget(self.numbers_by_team_radio_button)
+
         self.numbers_check_box.stateChanged.connect(self.number_activate)
         self.numbers_minute_radio_button.raise_()
         self.numbers_order_radio_button.raise_()
+        self.numbers_by_group_radio_button.raise_()
+        self.numbers_by_team_radio_button.raise_()
         self.numbers_interval_radio_button.raise_()
         self.numbers_first_spin_box.raise_()
         self.numbers_interval_label.raise_()
@@ -266,6 +283,8 @@ class StartPreparationDialog(QDialog):
             translate('Number = corridor + minute')
         )
         self.numbers_order_radio_button.setText(translate('Number = corridor + order'))
+        self.numbers_by_group_radio_button.setText(translate('Numbers by age groups'))
+        self.numbers_by_team_radio_button.setText(translate('Numbers by teams'))
 
     def reserve_activate(self):
         status = self.reserve_check_box.isChecked()
@@ -279,6 +298,8 @@ class StartPreparationDialog(QDialog):
         self.numbers_interval_radio_button.setEnabled(status)
         self.numbers_minute_radio_button.setEnabled(status)
         self.numbers_order_radio_button.setEnabled(status)
+        self.numbers_by_group_radio_button.setEnabled(status)
+        self.numbers_by_team_radio_button.setEnabled(status)
         self.numbers_interval_spin_box.setEnabled(status)
 
     def start_activate(self):
@@ -354,6 +375,14 @@ class StartPreparationDialog(QDialog):
                     StartNumberManager(obj).process('corridor_minute')
                 elif self.numbers_order_radio_button.isChecked():
                     StartNumberManager(obj).process('corridor_order')
+                elif self.numbers_by_group_radio_button.isChecked():
+                    first_number = self.numbers_first_spin_box.value()
+                    interval = self.numbers_interval_spin_box.value()
+                    assign_start_numbers_by_group(obj, first_number, interval)
+                elif self.numbers_by_team_radio_button.isChecked():
+                    first_number = self.numbers_first_spin_box.value()
+                    interval = self.numbers_interval_spin_box.value()
+                    assign_start_numbers_by_organization(obj, first_number, interval)
                 elif self.numbers_interval_radio_button.isChecked():
                     first_number = self.numbers_first_spin_box.value()
                     interval = self.numbers_interval_spin_box.value()
@@ -410,6 +439,12 @@ class StartPreparationDialog(QDialog):
         obj.set_setting(
             'is_corridor_order_number', self.numbers_order_radio_button.isChecked()
         )
+        obj.set_setting(
+            'is_number_by_group', self.numbers_by_group_radio_button.isChecked()
+        )
+        obj.set_setting(
+            'is_number_by_team', self.numbers_by_team_radio_button.isChecked()
+        )
         obj.set_setting('numbers_interval', self.numbers_interval_spin_box.value())
         obj.set_setting('numbers_first', self.numbers_first_spin_box.value())
 
@@ -464,6 +499,10 @@ class StartPreparationDialog(QDialog):
             self.numbers_minute_radio_button.setChecked(True)
         elif obj.get_setting('is_corridor_order_number', False):
             self.numbers_order_radio_button.setChecked(True)
+        elif obj.get_setting('is_number_by_group', False):
+            self.numbers_by_group_radio_button.setChecked(True)
+        elif obj.get_setting('is_number_by_team', False):
+            self.numbers_by_team_radio_button.setChecked(True)
         self.numbers_interval_spin_box.setValue(obj.get_setting('numbers_interval', 1))
         self.numbers_first_spin_box.setValue(obj.get_setting('numbers_first', 1))
 

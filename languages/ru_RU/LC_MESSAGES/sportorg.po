@@ -1926,3 +1926,21 @@ msgstr "Связка/группа"
 
 msgid "Tourism team leg"
 msgstr "№ в составе"
+
+msgid "Tourism team results"
+msgstr "Результаты связок/групп"
+
+msgid "Result bib"
+msgstr "Финишный номер"
+
+msgid "Warning"
+msgstr "Предупреждение"
+
+msgid "Several finishes in one tourism team"
+msgstr "Несколько финишей у одной связки/группы"
+
+msgid "Numbers by age groups"
+msgstr "Номера по возрастным группам"
+
+msgid "Numbers by teams"
+msgstr "Номера по коллективам"

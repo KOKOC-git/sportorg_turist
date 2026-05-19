@@ -327,6 +327,10 @@ def _default_menu_list():
                     'type': 'separator',
                 },
                 {
+                    'title': translate('Tourism team results'),
+                    'action': 'TourismTeamResultsAction',
+                },
+                {
                     'title': translate('Assign penalties / cutoff'),
                     'action': 'TourismPenaltiesAction',
                 },
@@ -482,11 +486,22 @@ def _default_menu_list():
 
 def _is_tourism_mode():
     try:
-        obj = race()
-        ensure_tourism_defaults(obj)
-        return getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
+        from sportorg.models.memory import race
+
+        competition_type = getattr(race(), 'competition_type', '')
+        data_competition_type = getattr(getattr(race(), 'data', None), 'competition_type', '')
+
+        tourism_types = {
+            'tourism',
+            'tourism_individual',
+            'tourism_pair',
+            'tourism_group',
+        }
+
+        return competition_type in tourism_types or data_competition_type in tourism_types
     except Exception:
         return False
+
 
 
 def _filter_actions(actions, allowed_titles):
@@ -565,7 +580,6 @@ def _tourism_menu_list():
         },
         translate('Start Preparation'): {
             translate('Start Preparation'),
-            translate('Relay number assign mode'),
             translate('Tourism team number assign mode'),
             translate('Tourism team members'),
         },
@@ -575,6 +589,7 @@ def _tourism_menu_list():
         },
         translate('Results'): {
             translate('Create report'),
+            translate('Tourism team results'),
             translate('Penalty calculation'),
             translate('Penalty removing'),
             translate('Assign penalties / cutoff'),

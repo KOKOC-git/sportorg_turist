@@ -29,6 +29,7 @@ from sportorg.gui.dialogs.relay_clone_dialog import RelayCloneDialog
 from sportorg.gui.dialogs.relay_number_dialog import RelayNumberDialog
 from sportorg.gui.dialogs.tourism_team_number_dialog import TourismTeamNumberDialog
 from sportorg.gui.dialogs.tourism_team_members import TourismTeamMembersDialog
+from sportorg.gui.dialogs.tourism_team_results import TourismTeamResultsDialog
 from sportorg.gui.dialogs.rent_cards_dialog import RentCardsDialog
 from sportorg.gui.dialogs.report_dialog import ReportDialog
 from sportorg.gui.dialogs.search_dialog import SearchDialog
@@ -544,6 +545,12 @@ class TourismTeamNumberAction(Action, metaclass=ActionFactory):
 class TourismTeamMembersAction(Action, metaclass=ActionFactory):
     def execute(self):
         TourismTeamMembersDialog(self.app).exec()
+        self.app.refresh()
+
+
+class TourismTeamResultsAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        TourismTeamResultsDialog(self.app).exec()
         self.app.refresh()
 
 
