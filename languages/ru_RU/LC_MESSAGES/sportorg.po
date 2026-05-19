@@ -62,7 +62,7 @@ msgid "Sorting by"
 msgstr "Сортировка по"
 
 msgid "Team"
-msgstr "Команда"
+msgstr "Коллектив"
 
 msgid "Save As HTML file"
 msgstr "Сохранить как HTML"
@@ -1944,3 +1944,63 @@ msgstr "Номера по возрастным группам"
 
 msgid "Numbers by teams"
 msgstr "Номера по коллективам"
+
+msgid "Start number range hint"
+msgstr ""
+"Для режимов «Номера по возрастным группам» и «Номера по коллективам» поле "
+"«интервал» означает шаг диапазона: 100 → 100–199, 200–299, 300–399..."
+
+msgid "Tourism scores"
+msgstr "Очки туризма"
+
+msgid "Tourism scores hint"
+msgstr ""
+"Введите очки по местам через запятую или точку с запятой. Например: "
+"40,37,35,33,32. Если мест больше, чем значений, используется последнее "
+"значение массива."
+
+msgid "Tourism overall standings"
+msgstr "Командный зачёт туризма"
+
+msgid "Count"
+msgstr "Кол-во"
+
+msgid "Details"
+msgstr "Расшифровка"
+
+msgid "Tourism standings settings"
+msgstr "Настройки командного зачёта туризма"
+
+msgid "Tourism standings settings hint"
+msgstr ""
+"Укажите, сколько результатов коллектива брать в зачёт. Значение 0 означает "
+"брать все результаты. Можно задать минимальное количество женских "
+"результатов: они определяются по названию возрастной группы, начинающейся с "
+"указанного признака, например «Ж»."
+
+msgid "Counted results quantity"
+msgstr "Количество зачётных результатов"
+
+msgid "Minimum female results quantity"
+msgstr "Минимум женских результатов"
+
+msgid "Female group prefix"
+msgstr "Признак женской группы"
+
+msgid "Delete tourism team"
+msgstr "Удалить связку/группу"
+
+msgid "Select tourism team to delete"
+msgstr "Выберите связку/группу для удаления"
+
+msgid "Incorrect tourism team number"
+msgstr "Некорректный номер связки/группы"
+
+msgid "Delete selected tourism team"
+msgstr "Удалить выбранную связку/группу"
+
+msgid "Tourism team deleted"
+msgstr "Связка/группа удалена, участников очищено"
+
+msgid "Information"
+msgstr "Информация"

@@ -9,31 +9,26 @@ from PySide6.QtWidgets import (
 
 from sportorg import config
 from sportorg.language import translate
-from sportorg.services.tourism_scores import calculate_tourism_team_places_and_scores
+from sportorg.services.tourism_overall_standings import build_tourism_overall_standings
 
 
-class TourismTeamResultsDialog(QDialog):
+class TourismOverallStandingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(translate('Tourism team results'))
+        self.setWindowTitle(translate('Tourism overall standings'))
         self.setWindowIcon(QIcon(config.ICON))
         self.setMinimumSize(1100, 550)
 
         self.layout = QVBoxLayout(self)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(10)
+        self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels([
             translate('Place'),
-            translate('Tourism team'),
-            translate('Bib'),
-            translate('Name'),
-            translate('Group'),
             translate('Team'),
-            translate('Result bib'),
-            translate('Result'),
             translate('Scores'),
-            translate('Warning'),
+            translate('Count'),
+            translate('Details'),
         ])
         self.layout.addWidget(self.table)
 
@@ -45,25 +40,20 @@ class TourismTeamResultsDialog(QDialog):
         self.load_data()
 
     def load_data(self):
-        units = calculate_tourism_team_places_and_scores()
-        self.table.setRowCount(len(units))
+        rows = build_tourism_overall_standings()
+        self.table.setRowCount(len(rows))
 
-        for row, unit in enumerate(units):
+        for row_index, row in enumerate(rows):
             values = [
-                getattr(unit, 'place', ''),
-                unit.number,
-                unit.bibs_text,
-                unit.members_text,
-                unit.group_name,
-                unit.team_name,
-                unit.result_bib,
-                unit.result_text,
-                getattr(unit, 'tourism_scores', 0),
-                translate(unit.warning_text) if unit.warning_text else '',
+                row.place,
+                row.team_name,
+                row.scores,
+                row.unit_count,
+                row.details,
             ]
 
             for col, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
-                self.table.setItem(row, col, item)
+                self.table.setItem(row_index, col, item)
 
         self.table.resizeColumnsToContents()

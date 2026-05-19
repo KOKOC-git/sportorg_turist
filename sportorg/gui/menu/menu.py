@@ -327,8 +327,20 @@ def _default_menu_list():
                     'type': 'separator',
                 },
                 {
+                    'title': translate('Tourism scores'),
+                    'action': 'TourismScoresAction',
+                },
+                {
                     'title': translate('Tourism team results'),
                     'action': 'TourismTeamResultsAction',
+                },
+                {
+                    'title': translate('Tourism standings settings'),
+                    'action': 'TourismStandingsSettingsAction',
+                },
+                {
+                    'title': translate('Tourism overall standings'),
+                    'action': 'TourismOverallStandingsAction',
                 },
                 {
                     'title': translate('Assign penalties / cutoff'),
@@ -589,7 +601,10 @@ def _tourism_menu_list():
         },
         translate('Results'): {
             translate('Create report'),
+            translate('Tourism scores'),
+            translate('Tourism standings settings'),
             translate('Tourism team results'),
+            translate('Tourism overall standings'),
             translate('Penalty calculation'),
             translate('Penalty removing'),
             translate('Assign penalties / cutoff'),
@@ -649,6 +664,22 @@ def _tourism_menu_list():
         # В режиме Туризм пункт назначения штрафов по одному этапу
         # должен быть доступен в меню Результаты независимо от фильтрации по названию.
         if title == translate('Results'):
+            has_create_report = any(
+                action.get('action') == 'CreateReportAction'
+                for action in new_top.get('actions', [])
+                if isinstance(action, dict)
+            )
+
+            if not has_create_report:
+                new_top['actions'].insert(
+                    0,
+                    {
+                        'title': translate('Create report'),
+                        'shortcut': 'Ctrl+P',
+                        'action': 'CreateReportAction',
+                    },
+                )
+
             has_stage_penalties = any(
                 action.get('action') == 'TourismStagePenaltiesAction'
                 for action in new_top.get('actions', [])

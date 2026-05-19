@@ -178,9 +178,9 @@ class StartPreparationDialog(QDialog):
         self.start_check_box.stateChanged.connect(self.start_activate)
 
         self.numbers_group_box = QtWidgets.QGroupBox(self)
-        self.numbers_group_box.setGeometry(QtCore.QRect(365, 150, 350, 210))
+        self.numbers_group_box.setGeometry(QtCore.QRect(365, 150, 350, 250))
         self.widget_numbers = QtWidgets.QWidget(self.numbers_group_box)
-        self.widget_numbers.setGeometry(QtCore.QRect(18, 20, 320, 150))
+        self.widget_numbers.setGeometry(QtCore.QRect(18, 20, 320, 205))
         self.numbers_vert_layout = QtWidgets.QVBoxLayout(self.widget_numbers)
         self.numbers_vert_layout.setContentsMargins(0, 0, 0, 0)
         self.numbers_check_box = QtWidgets.QCheckBox(self.widget_numbers)
@@ -223,11 +223,17 @@ class StartPreparationDialog(QDialog):
         self.numbers_by_team_radio_button.setChecked(False)
         self.numbers_vert_layout.addWidget(self.numbers_by_team_radio_button)
 
+        self.numbers_range_hint_label = QtWidgets.QLabel(self.widget_numbers)
+        self.numbers_range_hint_label.setWordWrap(True)
+        self.numbers_range_hint_label.setEnabled(False)
+        self.numbers_vert_layout.addWidget(self.numbers_range_hint_label)
+
         self.numbers_check_box.stateChanged.connect(self.number_activate)
         self.numbers_minute_radio_button.raise_()
         self.numbers_order_radio_button.raise_()
         self.numbers_by_group_radio_button.raise_()
         self.numbers_by_team_radio_button.raise_()
+        self.numbers_range_hint_label.raise_()
         self.numbers_interval_radio_button.raise_()
         self.numbers_first_spin_box.raise_()
         self.numbers_interval_label.raise_()
@@ -285,6 +291,7 @@ class StartPreparationDialog(QDialog):
         self.numbers_order_radio_button.setText(translate('Number = corridor + order'))
         self.numbers_by_group_radio_button.setText(translate('Numbers by age groups'))
         self.numbers_by_team_radio_button.setText(translate('Numbers by teams'))
+        self.numbers_range_hint_label.setText(translate('Start number range hint'))
 
     def reserve_activate(self):
         status = self.reserve_check_box.isChecked()
@@ -300,6 +307,7 @@ class StartPreparationDialog(QDialog):
         self.numbers_order_radio_button.setEnabled(status)
         self.numbers_by_group_radio_button.setEnabled(status)
         self.numbers_by_team_radio_button.setEnabled(status)
+        self.numbers_range_hint_label.setEnabled(status)
         self.numbers_interval_spin_box.setEnabled(status)
 
     def start_activate(self):

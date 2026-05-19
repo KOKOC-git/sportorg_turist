@@ -1725,3 +1725,62 @@ msgstr "Numbers by age groups"
 
 msgid "Numbers by teams"
 msgstr "Numbers by teams"
+
+msgid "Start number range hint"
+msgstr ""
+"For “Numbers by age groups” and “Numbers by teams”, the “interval” field "
+"means the range step: 100 → 100–199, 200–299, 300–399..."
+
+msgid "Tourism scores"
+msgstr "Tourism scores"
+
+msgid "Tourism scores hint"
+msgstr ""
+"Enter scores by places separated by comma or semicolon. Example: "
+"40,37,35,33,32. If there are more places than values, the last array value "
+"is used."
+
+msgid "Tourism overall standings"
+msgstr "Tourism overall standings"
+
+msgid "Count"
+msgstr "Count"
+
+msgid "Details"
+msgstr "Details"
+
+msgid "Tourism standings settings"
+msgstr "Tourism standings settings"
+
+msgid "Tourism standings settings hint"
+msgstr ""
+"Set how many team results should be counted. Value 0 means all results. You "
+"can set the minimum number of female results; they are detected by the age "
+"group name prefix, for example “Ж”."
+
+msgid "Counted results quantity"
+msgstr "Counted results quantity"
+
+msgid "Minimum female results quantity"
+msgstr "Minimum female results quantity"
+
+msgid "Female group prefix"
+msgstr "Female group prefix"
+
+msgid "Delete tourism team"
+msgstr "Delete tourism team"
+
+msgid "Select tourism team to delete"
+msgstr "Select tourism team to delete"
+
+msgid "Incorrect tourism team number"
+msgstr "Incorrect tourism team number"
+
+msgid "Delete selected tourism team"
+msgstr "Delete selected tourism team"
+
+msgid "Tourism team deleted"
+msgstr "Tourism team deleted, members cleared"
+
+msgid "Information"
+msgstr "Information"

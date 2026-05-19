@@ -30,6 +30,9 @@ from sportorg.gui.dialogs.relay_number_dialog import RelayNumberDialog
 from sportorg.gui.dialogs.tourism_team_number_dialog import TourismTeamNumberDialog
 from sportorg.gui.dialogs.tourism_team_members import TourismTeamMembersDialog
 from sportorg.gui.dialogs.tourism_team_results import TourismTeamResultsDialog
+from sportorg.gui.dialogs.tourism_scores_dialog import TourismScoresDialog
+from sportorg.gui.dialogs.tourism_overall_standings import TourismOverallStandingsDialog
+from sportorg.gui.dialogs.tourism_standings_settings import TourismStandingsSettingsDialog
 from sportorg.gui.dialogs.rent_cards_dialog import RentCardsDialog
 from sportorg.gui.dialogs.report_dialog import ReportDialog
 from sportorg.gui.dialogs.search_dialog import SearchDialog
@@ -551,6 +554,24 @@ class TourismTeamMembersAction(Action, metaclass=ActionFactory):
 class TourismTeamResultsAction(Action, metaclass=ActionFactory):
     def execute(self):
         TourismTeamResultsDialog(self.app).exec()
+        self.app.refresh()
+
+
+class TourismScoresAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        TourismScoresDialog().exec_()
+        self.app.refresh()
+
+
+class TourismOverallStandingsAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        TourismOverallStandingsDialog(self.app).exec()
+        self.app.refresh()
+
+
+class TourismStandingsSettingsAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        TourismStandingsSettingsDialog().exec_()
         self.app.refresh()
 
 

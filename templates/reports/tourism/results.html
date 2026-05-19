@@ -1,31 +1,357 @@
 {% extends "base.html" %}
+{% block title %}Tourism results{% endblock %}
+{% block head %}{{ super() }}{% endblock %}
+
 {% block content %}
-<h2>Протокол результатов — Туризм</h2>
-<table class="sportorg-table">
-  <thead>
-    <tr>
-      <th>Место</th><th>№</th><th>Участник/состав</th><th>Группа</th><th>Команда</th>
-      <th>Старт</th><th>Финиш</th><th>Время</th><th>Отсечки</th><th>Штраф</th><th>Итог</th><th>Статус</th><th>Очки</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for r in results %}
-    <tr>
-      <td>{{ r.place or '' }}</td>
-      <td>{{ r.identifier }}</td>
-      <td>{{ r.name }}</td>
-      <td>{{ r.group }}</td>
-      <td>{{ r.team }}</td>
-      <td>{{ r.start_time or '' }}</td>
-      <td>{{ r.finish_time or '' }}</td>
-      <td>{{ r.pure_time or '' }}</td>
-      <td>{{ r.cutoffs or '' }}</td>
-      <td>{{ r.penalty_points_sum }}</td>
-      <td>{{ r.final_time or '' }}</td>
-      <td>{{ r.status_label }}</td>
-      <td>{{ r.points or '' }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="text-center">
+    <h3>{{ race.data.description }} <br>{{ race.data.start_datetime|date }} {{ race.data.location }}</h3>
+    <h2>ПРОТОКОЛ РЕЗУЛЬТАТОВ — ТУРИЗМ</h2>
+</div>
+
+<div id="tourism-results"></div>
+
+{% raw %}
+<style>
+    .tourism-protocol-group {
+        margin-bottom: 32px;
+        page-break-after: always;
+    }
+
+    .tourism-protocol-group:last-child {
+        page-break-after: auto;
+    }
+
+    .tourism-group-title {
+        margin-top: 18px;
+        margin-bottom: 8px;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .sportorg-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 16px;
+    }
+
+    .sportorg-table th,
+    .sportorg-table td {
+        border: 1px solid #333;
+        padding: 4px 6px;
+        font-size: 12px;
+    }
+
+    .sportorg-table th {
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+</style>
+
+<script>
+    var race = {% endraw %}{{ race|tojson }}{% raw %};
+    racePreparation(race);
+
+    function safeText(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value);
+    }
+
+    function toHHMMSSFromMsec(msec) {
+        msec = Number(msec || 0);
+        if (!msec || msec < 0) {
+            return '';
+        }
+
+        var totalSeconds = Math.floor(msec / 1000);
+        var hours = Math.floor(totalSeconds / 3600);
+        var minutes = Math.floor((totalSeconds % 3600) / 60);
+        var seconds = totalSeconds % 60;
+
+        function pad(n) {
+            return n < 10 ? '0' + n : '' + n;
+        }
+
+        return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+    }
+
+    function getStatusText(status) {
+        var statuses = {
+            1: 'OK',
+            2: 'DNS',
+            3: 'DNF',
+            4: 'DSQ',
+            5: 'MP',
+            6: 'OT',
+            7: 'NC',
+            8: 'DQ',
+            9: 'Превышено КВ',
+            10: 'Не стартовал',
+            11: 'Снят',
+            12: 'Нет результата',
+            13: 'Удалён'
+        };
+        return statuses[status] || safeText(status);
+    }
+
+    function isOk(result) {
+        return Number(result.status) === 1;
+    }
+
+    function getGroupName(result) {
+        if (result.person && result.person.group && result.person.group.name) {
+            return result.person.group.name;
+        }
+        return 'Без группы';
+    }
+
+    function getTeamName(result) {
+        if (result.person && result.person.organization && result.person.organization.name) {
+            return result.person.organization.name;
+        }
+        return '';
+    }
+
+    function getPersonName(result) {
+        if (!result.person) {
+            return '';
+        }
+
+        return safeText(result.person.surname) + ' ' + safeText(result.person.name);
+    }
+
+    function getBib(result) {
+        if (result.person && result.person.bib) {
+            return result.person.bib;
+        }
+        if (result.bib) {
+            return result.bib;
+        }
+        return '';
+    }
+
+    function getResultMsec(result) {
+        if (result.result_msec) {
+            return Number(result.result_msec);
+        }
+        if (result.result_current_msec) {
+            return Number(result.result_current_msec);
+        }
+        return 0;
+    }
+
+    function getResultText(result) {
+        if (result.result_current) {
+            return result.result_current;
+        }
+        if (result.result) {
+            return result.result;
+        }
+        return toHHMMSSFromMsec(getResultMsec(result));
+    }
+
+    function getPenaltyText(result) {
+        if (result.tourism_penalty_time) {
+            return result.tourism_penalty_time;
+        }
+        if (result.penalty_time) {
+            return toHHMMSSFromMsec(result.penalty_time);
+        }
+        if (result.tourism_penalty_points) {
+            return result.tourism_penalty_points;
+        }
+        return '';
+    }
+
+    function getCutoffText(result) {
+        if (result.tourism_cutoff_time) {
+            return result.tourism_cutoff_time;
+        }
+        if (result.credit_time) {
+            return toHHMMSSFromMsec(result.credit_time);
+        }
+        return '';
+    }
+
+    function compareResults(a, b) {
+        var aOk = isOk(a);
+        var bOk = isOk(b);
+
+        if (aOk !== bOk) {
+            return aOk ? -1 : 1;
+        }
+
+        var aTime = getResultMsec(a);
+        var bTime = getResultMsec(b);
+
+        if (aOk && bOk) {
+            if (aTime !== bTime) {
+                return aTime - bTime;
+            }
+        }
+
+        return String(getPersonName(a)).localeCompare(String(getPersonName(b)));
+    }
+
+    function groupResultsByAgeGroup() {
+        var grouped = {};
+
+        for (var i = 0; i < race.results.length; i++) {
+            var result = race.results[i];
+
+            if (Number(result.status) === 13) {
+                continue;
+            }
+
+            var groupName = getGroupName(result);
+            if (!grouped[groupName]) {
+                grouped[groupName] = [];
+            }
+
+            grouped[groupName].push(result);
+        }
+
+        return grouped;
+    }
+
+    function assignPlaces(results) {
+        results.sort(compareResults);
+
+        var place = 0;
+        var counted = 0;
+        var previousTime = null;
+
+        for (var i = 0; i < results.length; i++) {
+            var result = results[i];
+
+            result._tourism_place = '';
+
+            if (!isOk(result)) {
+                continue;
+            }
+
+            var time = getResultMsec(result);
+            if (!time || time <= 0) {
+                continue;
+            }
+
+            counted += 1;
+
+            if (previousTime === null || time !== previousTime) {
+                place = counted;
+                previousTime = time;
+            }
+
+            result._tourism_place = place;
+        }
+
+        return results;
+    }
+
+    function createCell(text) {
+        var td = document.createElement('td');
+        td.appendChild(document.createTextNode(safeText(text)));
+        return td;
+    }
+
+    function createHeaderCell(text) {
+        var th = document.createElement('th');
+        th.appendChild(document.createTextNode(safeText(text)));
+        return th;
+    }
+
+    function buildGroupTable(groupName, results) {
+        results = assignPlaces(results);
+
+        var block = document.createElement('div');
+        block.className = 'tourism-protocol-group';
+
+        var title = document.createElement('div');
+        title.className = 'tourism-group-title';
+        title.appendChild(document.createTextNode('Возрастная группа: ' + groupName));
+        block.appendChild(title);
+
+        var table = document.createElement('table');
+        table.className = 'sportorg-table';
+
+        var thead = document.createElement('thead');
+        var headerRow = document.createElement('tr');
+
+        [
+            'Место',
+            '№',
+            'Участник',
+            'Коллектив',
+            'Старт',
+            'Финиш',
+            'Время',
+            'Отсечка',
+            'Штраф',
+            'Итог',
+            'Статус',
+            'Очки'
+        ].forEach(function (title) {
+            headerRow.appendChild(createHeaderCell(title));
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        var tbody = document.createElement('tbody');
+
+        for (var i = 0; i < results.length; i++) {
+            var result = results[i];
+
+            var tr = document.createElement('tr');
+
+            tr.appendChild(createCell(result._tourism_place));
+            tr.appendChild(createCell(getBib(result)));
+            tr.appendChild(createCell(getPersonName(result)));
+            tr.appendChild(createCell(getTeamName(result)));
+            tr.appendChild(createCell(result.start_time ? toHHMMSSFromMsec(result.start_time) : ''));
+            tr.appendChild(createCell(result.finish_time ? toHHMMSSFromMsec(result.finish_time) : ''));
+            tr.appendChild(createCell(result.result_msec ? toHHMMSSFromMsec(result.result_msec) : ''));
+            tr.appendChild(createCell(getCutoffText(result)));
+            tr.appendChild(createCell(getPenaltyText(result)));
+            tr.appendChild(createCell(getResultText(result)));
+            tr.appendChild(createCell(getStatusText(result.status)));
+            tr.appendChild(createCell(result.scores || ''));
+
+            tbody.appendChild(tr);
+        }
+
+        table.appendChild(tbody);
+        block.appendChild(table);
+
+        return block;
+    }
+
+    function renderTourismResults() {
+        var root = document.getElementById('tourism-results');
+        var grouped = groupResultsByAgeGroup();
+        var groupNames = Object.keys(grouped).sort(function (a, b) {
+            return a.localeCompare(b);
+        });
+
+        if (!groupNames.length) {
+            var empty = document.createElement('p');
+            empty.appendChild(document.createTextNode('Нет данных для протокола.'));
+            root.appendChild(empty);
+            return;
+        }
+
+        for (var i = 0; i < groupNames.length; i++) {
+            var groupName = groupNames[i];
+            root.appendChild(buildGroupTable(groupName, grouped[groupName]));
+        }
+    }
+
+    renderTourismResults();
+</script>
+{% endraw %}
 {% endblock %}

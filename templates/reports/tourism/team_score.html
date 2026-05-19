@@ -1,20 +1,59 @@
 {% extends "base.html" %}
+
 {% block content %}
+<style>
+  .tourism-team-score-group {
+    margin-bottom: 32px;
+    page-break-after: always;
+  }
+
+  .tourism-team-score-group:last-child {
+    page-break-after: auto;
+  }
+
+  .tourism-protocol-title {
+    margin-bottom: 4px;
+  }
+
+  .tourism-protocol-subtitle {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-weight: bold;
+  }
+</style>
+
 <h2>Командный зачёт — Туризм</h2>
-<table class="sportorg-table">
-  <thead>
-    <tr><th>Место</th><th>Команда</th><th>Территория</th><th>Группа зачёта</th><th>Очки</th></tr>
-  </thead>
-  <tbody>
-  {% for row in teams %}
-    <tr>
-      <td>{{ row.place or '' }}</td>
-      <td>{{ row.team }}</td>
-      <td>{{ row.region }}</td>
-      <td>{{ row.group }}</td>
-      <td>{{ row.total_points }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+
+{% set grouped_teams = teams|sort(attribute='group')|groupby('group') %}
+
+{% for group_name, group_teams in grouped_teams %}
+  <div class="tourism-team-score-group">
+    <h3 class="tourism-protocol-title">Командный зачёт</h3>
+    <div class="tourism-protocol-subtitle">Группа зачёта: {{ group_name or 'Без группы' }}</div>
+
+    <table class="sportorg-table">
+      <thead>
+        <tr>
+          <th>Место</th>
+          <th>Команда</th>
+          <th>Территория</th>
+          <th>Группа зачёта</th>
+          <th>Очки</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in group_teams %}
+        <tr>
+          <td>{{ row.place or '' }}</td>
+          <td>{{ row.team }}</td>
+          <td>{{ row.region }}</td>
+          <td>{{ row.group }}</td>
+          <td>{{ row.total_points }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
+
 {% endblock %}
