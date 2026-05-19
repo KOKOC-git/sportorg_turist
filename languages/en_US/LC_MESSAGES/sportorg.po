@@ -21,70 +21,70 @@ msgid "SportOrg"
 msgstr "SportOrg"
 
 msgid "Qualification title"
-msgstr "Qual"
+msgstr "Qualification title"
 
 msgid "Year title"
-msgstr "Year"
+msgstr "Year title"
 
 msgid "Card title"
-msgstr "Card"
+msgstr "Card title"
 
 msgid "World code title"
-msgstr "World code"
+msgstr "World code title"
 
 msgid "National code title"
-msgstr "National code"
+msgstr "National code title"
 
 msgid "Out of competition title"
-msgstr "Out of competition"
+msgstr "Out of competition title"
 
 msgid "Result count title"
-msgstr "Result count"
+msgstr "Result count title"
 
 msgid "Start fee title"
-msgstr "Start fee"
+msgstr "Start fee title"
 
 msgid "Point count title"
-msgstr "Point count"
+msgstr "Point count title"
 
 msgid "Climb title"
-msgstr "Climb,m"
+msgstr "Climb title"
 
 msgid "Min year title"
-msgstr "Min year"
+msgstr "Min year title"
 
 msgid "Max year title"
-msgstr "Max year"
+msgstr "Max year title"
 
 msgid "Start interval title"
-msgstr "Start interval"
+msgstr "Start interval title"
 
 msgid "Start corridor title"
-msgstr "Start corridor"
+msgstr "Start corridor title"
 
 msgid "Order in corridor title"
-msgstr "Order in corridor"
+msgstr "Order in corridor title"
 
 msgid "Length title"
-msgstr "Length,m"
+msgstr "Length title"
 
 msgid "Penalty legs title"
-msgstr "Penalty legs"
+msgstr "Penalty legs title"
 
 msgid "Mf"
 msgstr "MF"
 
 msgid "SPORTident (Sportiduino, ...) settings"
-msgstr "Control cards"
+msgstr "SPORTident (Sportiduino, ...) settings"
 
 msgid "Result processing"
-msgstr "Result"
+msgstr "Result processing"
 
 msgid "Penalty calculation"
-msgstr "Penalty"
+msgstr "Penalty calculation"
 
 msgid "Time settings"
-msgstr "Time"
+msgstr "Time settings"
 
 msgid "Tourism"
 msgstr "Tourism"
@@ -108,7 +108,7 @@ msgid "Configure tourism stages"
 msgstr "Configure tourism stages"
 
 msgid "Assign penalties / cutoff"
-msgstr "Assign penalties / cutoffs"
+msgstr "Assign penalties / cutoff"
 
 msgid "Stage penalties"
 msgstr "Stage penalties"
@@ -159,7 +159,7 @@ msgid "Enter stages for the selected course in the order they are passed"
 msgstr "Enter stages for the selected course in the order they are passed"
 
 msgid "This function is available only for Tourism competition type"
-msgstr "This function is available only for the Tourism competition type"
+msgstr "This function is available only for Tourism competition type"
 
 msgid "No tourism stages found. Please create stages first"
 msgstr "No tourism stages found. Please create stages first"
@@ -168,7 +168,7 @@ msgid "No stages configured for competitor group"
 msgstr "No stages configured for the competitor's group"
 
 msgid "Competitor group is not configured as Tourism"
-msgstr "The competitor's group is not configured as Tourism"
+msgstr "Competitor group is not configured as Tourism"
 
 msgid "Competitor not found"
 msgstr "Competitor not found"
@@ -226,3 +226,1457 @@ msgstr "No sanction specified"
 
 msgid "Cannot set both penalty time and penalty points"
 msgstr "Cannot set both penalty time and penalty points"
+
+msgid "00:00:00"
+msgstr "00:00:00"
+
+msgid "< 24"
+msgstr "< 24"
+
+msgid "> 24"
+msgstr "> 24"
+
+msgid "About"
+msgstr "About"
+
+msgid "Accuracy"
+msgstr "Accuracy"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "Add"
+msgstr "Add"
+
+msgid "Add SPORTident result"
+msgstr "Add SPORTident result"
+
+msgid "Add object"
+msgstr "Add object"
+
+msgid "Always"
+msgstr "Always"
+
+msgid "Are you sure you want to reassign the chip number"
+msgstr "Are you sure you want to reassign the chip number"
+
+msgid "Ask for a bib when re-reading the card"
+msgstr "Ask for a bib when re-reading the card"
+
+msgid "Assign"
+msgstr "Assign"
+
+msgid "Assign result by bib"
+msgstr "Assign result by bib"
+
+msgid "Assign result by card number"
+msgstr "Assign result by card number"
+
+msgid "Assign stage penalties"
+msgstr "Assign stage penalties"
+
+msgid "Assigning a chip when reading"
+msgstr "Assigning a chip when reading"
+
+msgid "Assignment mode"
+msgstr "Assignment mode"
+
+msgid "Athlete auto create"
+msgstr "Athlete auto create"
+
+msgid "Auto save"
+msgstr "Auto save"
+
+msgid "Available Ports"
+msgstr "Available Ports"
+
+msgid "Bib"
+msgstr "Bib"
+
+msgid "Bib or Name"
+msgstr "Bib or Name"
+
+msgid "Birthday"
+msgstr "Birthday"
+
+msgid "Bottom"
+msgstr "Bottom"
+
+msgid "CP from splits"
+msgstr "CP from splits"
+
+msgid "CP increment"
+msgstr "CP increment"
+
+msgid "CSV Winorient"
+msgstr "CSV Winorient"
+
+msgid "CSV Winorient (*.csv)"
+msgstr "CSV Winorient (*.csv)"
+
+msgid "CSV file (*.csv)"
+msgstr "CSV file (*.csv)"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Cannot create file"
+msgstr "Cannot create file"
+
+msgid "Cannot open file, already locked"
+msgstr "Cannot open file, already locked"
+
+msgid "Cannot open port"
+msgstr "Cannot open port"
+
+msgid "Cannot overwrite existing file with new"
+msgstr "Cannot overwrite existing file with new"
+
+msgid "Cannot read file, format unknown"
+msgstr "Cannot read file, format unknown"
+
+msgid "Cannot remove course"
+msgstr "Cannot remove course"
+
+msgid "Cannot remove group"
+msgstr "Cannot remove group"
+
+msgid "Cannot remove organization"
+msgstr "Cannot remove organization"
+
+msgid "Card"
+msgstr "Card"
+
+msgid "Card number"
+msgstr "Card number"
+
+msgid "Card number already exists"
+msgstr "Card number already exists"
+
+msgid "Card number is unique"
+msgstr "Card number is unique"
+
+msgid "Change start numbers"
+msgstr "Change start numbers"
+
+msgid "Change start time"
+msgstr "Change start time"
+
+msgid "Change status"
+msgstr "Change status"
+
+msgid "Chat id"
+msgstr "Chat id"
+
+msgid "Check updates"
+msgstr "Check updates"
+
+msgid "Chief referee"
+msgstr "Chief referee"
+
+msgid "Chip"
+msgstr "Chip"
+
+msgid "Choose race"
+msgstr "Choose race"
+
+msgid "Choose template"
+msgstr "Choose template"
+
+msgid "Clean time"
+msgstr "Clean time"
+
+msgid "Clear"
+msgstr "Clear"
+
+msgid "Client"
+msgstr "Client"
+
+msgid "Client/Server"
+msgstr "Client/Server"
+
+msgid "Climb"
+msgstr "Climb"
+
+msgid "Clone relay legs"
+msgstr "Clone relay legs"
+
+msgid "Close"
+msgstr "Close"
+
+msgid "Closing connection"
+msgstr "Closing connection"
+
+msgid "Closing port"
+msgstr "Closing port"
+
+msgid "Code"
+msgstr "Code"
+
+msgid "Comment"
+msgstr "Comment"
+
+msgid "Competition type"
+msgstr "Competition type"
+
+msgid "Competitor"
+msgstr "Competitor"
+
+msgid "CompetitorList"
+msgstr "CompetitorList"
+
+msgid "Competitors"
+msgstr "Competitors"
+
+msgid "Configuration"
+msgstr "Configuration"
+
+msgid "Contact"
+msgstr "Contact"
+
+msgid "Contributors"
+msgstr "Contributors"
+
+msgid "Control point"
+msgstr "Control point"
+
+msgid "Controls"
+msgstr "Controls"
+
+msgid "Copy"
+msgstr "Copy"
+
+msgid "Count of finished"
+msgstr "Count of finished"
+
+msgid "Count of groups"
+msgstr "Count of groups"
+
+msgid "Count of not finished"
+msgstr "Count of not finished"
+
+msgid "Count of person"
+msgstr "Count of person"
+
+msgid "Country"
+msgstr "Country"
+
+msgid "Course"
+msgstr "Course"
+
+msgid "Course name"
+msgstr "Course name"
+
+msgid "Course properties"
+msgstr "Course properties"
+
+msgid "Courses"
+msgstr "Courses"
+
+msgid "Create SportOrg file"
+msgstr "Create SportOrg file"
+
+msgid "Create new result, if doesn't exist"
+msgstr "Create new result, if doesn't exist"
+
+msgid "Create report"
+msgstr "Create report"
+
+msgid "Created at"
+msgstr "Created at"
+
+msgid "Credit"
+msgstr "Credit"
+
+msgid "Ctrl+K - send selected"
+msgstr "Ctrl+K - send selected"
+
+msgid "Ctrl+K on groups - send start list"
+msgstr "Ctrl+K on groups - send start list"
+
+msgid "DSQ"
+msgstr "DSQ"
+
+msgid "Days"
+msgstr "Days"
+
+msgid "Default split printer"
+msgstr "Default split printer"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Delete CP"
+msgstr "Delete CP"
+
+msgid "Delete Split"
+msgstr "Delete Split"
+
+msgid "Delete split"
+msgstr "Delete split"
+
+msgid "Dialog"
+msgstr "Dialog"
+
+msgid "Diff"
+msgstr "Diff"
+
+msgid "Don't disqualify"
+msgstr "Don't disqualify"
+
+msgid "Down"
+msgstr "Down"
+
+msgid "Draft results"
+msgstr "Draft results"
+
+msgid "Draw"
+msgstr "Draw"
+
+msgid "Duplicate"
+msgstr "Duplicate"
+
+msgid "Duplicate card numbers (card numbers are reset)"
+msgstr "Duplicate card numbers (card numbers are reset)"
+
+msgid "Duplicate names"
+msgstr "Duplicate names"
+
+msgid "Duplicate timeout"
+msgstr "Duplicate timeout"
+
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Enable rented card sound"
+msgstr "Enable rented card sound"
+
+msgid "Enabled"
+msgstr "Enabled"
+
+msgid "End CP"
+msgstr "End CP"
+
+msgid "End date"
+msgstr "End date"
+
+msgid "Enter number sound"
+msgstr "Enter number sound"
+
+msgid "Entry properties"
+msgstr "Entry properties"
+
+msgid "EntrytList"
+msgstr "EntrytList"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "Event Settings"
+msgstr "Event Settings"
+
+msgid "Event properties"
+msgstr "Event properties"
+
+msgid "Export"
+msgstr "Export"
+
+msgid "Export error"
+msgstr "Export error"
+
+msgid "File"
+msgstr "File"
+
+msgid "Filter"
+msgstr "Filter"
+
+msgid "Filter Dialog"
+msgstr "Filter Dialog"
+
+msgid "Filter reset"
+msgstr "Filter reset"
+
+msgid "Final result will be known"
+msgstr "Final result will be known"
+
+msgid "Find group by punches"
+msgstr "Find group by punches"
+
+msgid "Find next relay leg"
+msgstr "Find next relay leg"
+
+msgid "Finish"
+msgstr "Finish"
+
+msgid "Finish as CP"
+msgstr "Finish as CP"
+
+msgid "Finish station"
+msgstr "Finish station"
+
+msgid "Finish time"
+msgstr "Finish time"
+
+msgid "Finish timing URL"
+msgstr "Finish timing URL"
+
+msgid "First CP"
+msgstr "First CP"
+
+msgid "First name"
+msgstr "First name"
+
+msgid "First number"
+msgstr "First number"
+
+msgid "First relay number"
+msgstr "First relay number"
+
+msgid "First start in corridor"
+msgstr "First start in corridor"
+
+msgid "Fixed start interval"
+msgstr "Fixed start interval"
+
+msgid "Format of competitions"
+msgstr "Format of competitions"
+
+msgid "Formula"
+msgstr "Formula"
+
+msgid "From protocol"
+msgstr "From protocol"
+
+msgid "Full name"
+msgstr "Full name"
+
+msgid "Group"
+msgstr "Group"
+
+msgid "Group not found"
+msgstr "Group not found"
+
+msgid "Group properties"
+msgstr "Group properties"
+
+msgid "Groups"
+msgstr "Groups"
+
+msgid "Guess corridors"
+msgstr "Guess corridors"
+
+msgid "Guess courses"
+msgstr "Guess courses"
+
+msgid "HTML"
+msgstr "HTML"
+
+msgid "HTML file (*.html)"
+msgstr "HTML file (*.html)"
+
+msgid "Handicap mode"
+msgstr "Handicap mode"
+
+msgid "Handicap start time"
+msgstr "Handicap start time"
+
+msgid "Help"
+msgstr "Help"
+
+msgid "Home page"
+msgstr "Home page"
+
+msgid "Host"
+msgstr "Host"
+
+msgid "IOF id"
+msgstr "IOF id"
+
+msgid "IOF xml"
+msgstr "IOF xml"
+
+msgid "IOF xml (*.xml)"
+msgstr "IOF xml (*.xml)"
+
+msgid "Id"
+msgstr "Id"
+
+msgid "Identifier"
+msgstr "Identifier"
+
+msgid "Ignore punches before start"
+msgstr "Ignore punches before start"
+
+msgid "Import"
+msgstr "Import"
+
+msgid "Import error"
+msgstr "Import error"
+
+msgid "Import from SportOrg file"
+msgstr "Import from SportOrg file"
+
+msgid "Import result"
+msgstr "Import result"
+
+msgid "Increment"
+msgstr "Increment"
+
+msgid "Individual"
+msgstr "Individual"
+
+msgid "Info"
+msgstr "Info"
+
+msgid "Inherit from event"
+msgstr "Inherit from event"
+
+msgid "Insert reserves"
+msgstr "Insert reserves"
+
+msgid "Internal printing"
+msgstr "Internal printing"
+
+msgid "Is any course"
+msgstr "Is any course"
+
+msgid "Ivan Churakoff M21 11:09:00"
+msgstr "Ivan Churakoff M21 11:09:00"
+
+msgid "Languages"
+msgstr "Languages"
+
+msgid "Last control + penalty"
+msgstr "Last control + penalty"
+
+msgid "Last name"
+msgstr "Last name"
+
+msgid "Left"
+msgstr "Left"
+
+msgid "Length"
+msgstr "Length"
+
+msgid "Length(m)"
+msgstr "Length(m)"
+
+msgid "Light beam"
+msgstr "Light beam"
+
+msgid "Limit per team"
+msgstr "Limit per team"
+
+msgid "Live"
+msgstr "Live"
+
+msgid "Location"
+msgstr "Location"
+
+msgid "Logs"
+msgstr "Logs"
+
+msgid "MS Word file (*.docx)"
+msgstr "MS Word file (*.docx)"
+
+msgid "Main settings"
+msgstr "Main settings"
+
+msgid "Main title"
+msgstr "Main title"
+
+msgid "Manual finish"
+msgstr "Manual finish"
+
+msgid "Manual finish queue"
+msgstr "Manual finish queue"
+
+msgid "Margins"
+msgstr "Margins"
+
+msgid "Markdown"
+msgstr "Markdown"
+
+msgid "Marked route course generation"
+msgstr "Marked route course generation"
+
+msgid "Mass Edit Dialog"
+msgstr "Mass Edit Dialog"
+
+msgid "Mass edit"
+msgstr "Mass edit"
+
+msgid "Math rounding"
+msgstr "Math rounding"
+
+msgid "Max gap from leader"
+msgstr "Max gap from leader"
+
+msgid "Max intermediate CP"
+msgstr "Max intermediate CP"
+
+msgid "Max penalty = quantity of cp"
+msgstr "Max penalty = quantity of cp"
+
+msgid "Max place"
+msgstr "Max place"
+
+msgid "Max rows count"
+msgstr "Max rows count"
+
+msgid "Max time"
+msgstr "Max time"
+
+msgid "Max year"
+msgstr "Max year"
+
+msgid "Maximal bib"
+msgstr "Maximal bib"
+
+msgid "Merge punches"
+msgstr "Merge punches"
+
+msgid "Merge results"
+msgstr "Merge results"
+
+msgid "Min year"
+msgstr "Min year"
+
+msgid "Min. time interval"
+msgstr "Min. time interval"
+
+msgid "Minimal bib"
+msgstr "Minimal bib"
+
+msgid "Missed finish"
+msgstr "Missed finish"
+
+msgid "Mix groups"
+msgstr "Mix groups"
+
+msgid "Move down"
+msgstr "Move down"
+
+msgid "Move up"
+msgstr "Move up"
+
+msgid "Multi day"
+msgstr "Multi day"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "National code"
+msgstr "National code"
+
+msgid "National id"
+msgstr "National id"
+
+msgid "New"
+msgstr "New"
+
+msgid "No"
+msgstr "No"
+
+msgid "No printer selected"
+msgstr "No printer selected"
+
+msgid "No result selected"
+msgstr "No result selected"
+
+msgid "No results to change status"
+msgstr "No results to change status"
+
+msgid "No results to print"
+msgstr "No results to print"
+
+msgid "Not started numbers"
+msgstr "Not started numbers"
+
+msgid "Number = corridor + minute"
+msgstr "Number = corridor + minute"
+
+msgid "Number = corridor + order"
+msgstr "Number = corridor + order"
+
+msgid "Number CP"
+msgstr "Number CP"
+
+msgid "Number already exists"
+msgstr "Number already exists"
+
+msgid "Number is unique"
+msgstr "Number is unique"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Ocad classes v8 (*.txt)"
+msgstr "Ocad classes v8 (*.txt)"
+
+msgid "Ocad txt v8"
+msgstr "Ocad txt v8"
+
+msgid "Off"
+msgstr "Off"
+
+msgid "Offset after DSQ"
+msgstr "Offset after DSQ"
+
+msgid "Ok"
+msgstr "Ok"
+
+msgid "On/Off"
+msgstr "On/Off"
+
+msgid "Online"
+msgstr "Online"
+
+msgid "Online CP sending"
+msgstr "Online CP sending"
+
+msgid "Online CP settings"
+msgstr "Online CP settings"
+
+msgid "Online results sending"
+msgstr "Online results sending"
+
+msgid "Only unknown members"
+msgstr "Only unknown members"
+
+msgid "Open"
+msgstr "Open"
+
+msgid "Open CSV Winorient file"
+msgstr "Open CSV Winorient file"
+
+msgid "Open HTML template"
+msgstr "Open HTML template"
+
+msgid "Open IOF xml"
+msgstr "Open IOF xml"
+
+msgid "Open Ocad txt v8 file"
+msgstr "Open Ocad txt v8 file"
+
+msgid "Open SPORTident master station backup file"
+msgstr "Open SPORTident master station backup file"
+
+msgid "Open SportOrg HTML file"
+msgstr "Open SportOrg HTML file"
+
+msgid "Open SportOrg SI log file"
+msgstr "Open SportOrg SI log file"
+
+msgid "Open SportOrg file"
+msgstr "Open SportOrg file"
+
+msgid "Open SportOrg json"
+msgstr "Open SportOrg json"
+
+msgid "Open WDB Winorient file"
+msgstr "Open WDB Winorient file"
+
+msgid "Open in browser"
+msgstr "Open in browser"
+
+msgid "Open orgeo.ru finish CSV file"
+msgstr "Open orgeo.ru finish CSV file"
+
+msgid "Open recent file"
+msgstr "Open recent file"
+
+msgid "Open source WDB file"
+msgstr "Open source WDB file"
+
+msgid "Open target WDB file"
+msgstr "Open target WDB file"
+
+msgid "Opening port"
+msgstr "Opening port"
+
+msgid ""
+"Operating mode: evaluation point\n"
+"Print the number of penalty laps instead of splits\n"
+"when a competitor reads out his card"
+msgstr ""
+"Operating mode: evaluation point\n"
+"Print the number of penalty laps instead of splits\n"
+"when a competitor reads out his card"
+
+msgid "Options"
+msgstr "Options"
+
+msgid "Order"
+msgstr "Order"
+
+msgid "Order in corridor"
+msgstr "Order in corridor"
+
+msgid "Orgeo.ru CSV"
+msgstr "Orgeo.ru CSV"
+
+msgid "Overwrite"
+msgstr "Overwrite"
+
+msgid "Parse mode"
+msgstr "Parse mode"
+
+msgid "Penalty calculation mode: penalty laps"
+msgstr "Penalty calculation mode: penalty laps"
+
+msgid "Penalty calculation mode: penalty time"
+msgstr "Penalty calculation mode: penalty time"
+
+msgid "Penalty for finishing late"
+msgstr "Penalty for finishing late"
+
+msgid "Penalty legs"
+msgstr "Penalty legs"
+
+msgid "Penalty removing"
+msgstr "Penalty removing"
+
+msgid "Pending manual finishes"
+msgstr "Pending manual finishes"
+
+msgid "Person name"
+msgstr "Person name"
+
+msgid "Persons"
+msgstr "Persons"
+
+msgid "Place"
+msgstr "Place"
+
+msgid "Please confirm"
+msgstr "Please confirm"
+
+msgid "Point count"
+msgstr "Point count"
+
+msgid "Points gained"
+msgstr "Points gained"
+
+msgid "Port"
+msgstr "Port"
+
+msgid "Print splits"
+msgstr "Print splits"
+
+msgid "Printer settings"
+msgstr "Printer settings"
+
+msgid "Punch card #"
+msgstr "Punch card #"
+
+msgid "Qualification"
+msgstr "Qualification"
+
+msgid "Question"
+msgstr "Question"
+
+msgid "Queue"
+msgstr "Queue"
+
+msgid "Race"
+msgstr "Race"
+
+msgid "Race Results"
+msgstr "Race Results"
+
+msgid "Rank"
+msgstr "Rank"
+
+msgid "Rank calculation"
+msgstr "Rank calculation"
+
+msgid "Readout time"
+msgstr "Readout time"
+
+msgid "Rechecking"
+msgstr "Rechecking"
+
+msgid "Reduce"
+msgstr "Reduce"
+
+msgid "Refresh"
+msgstr "Refresh"
+
+msgid "Region"
+msgstr "Region"
+
+msgid "Relay"
+msgstr "Relay"
+
+msgid "Relay legs"
+msgstr "Relay legs"
+
+msgid "Relay number"
+msgstr "Relay number"
+
+msgid "Relay number assign mode"
+msgstr "Relay number assign mode"
+
+msgid "Remove last"
+msgstr "Remove last"
+
+msgid "Remove selected"
+msgstr "Remove selected"
+
+msgid "Remove source"
+msgstr "Remove source"
+
+msgid "Rent cards"
+msgstr "Rent cards"
+
+msgid "Rented card"
+msgstr "Rented card"
+
+msgid "Rented card sound"
+msgstr "Rented card sound"
+
+msgid "Rented stub"
+msgstr "Rented stub"
+
+msgid "Replace source with reserve"
+msgstr "Replace source with reserve"
+
+msgid "Report creating"
+msgstr "Report creating"
+
+msgid "Reserve"
+msgstr "Reserve"
+
+msgid "Reserve M60 11:40:00"
+msgstr "Reserve M60 11:40:00"
+
+msgid "Reserve prefix"
+msgstr "Reserve prefix"
+
+msgid "Reserves insert"
+msgstr "Reserves insert"
+
+msgid "Reserves per group, %"
+msgstr "Reserves per group, %"
+
+msgid "Reserves per group, ps"
+msgstr "Reserves per group, ps"
+
+msgid "Result"
+msgstr "Result"
+
+msgid "Result day/leg"
+msgstr "Result day/leg"
+
+msgid "Result is final"
+msgstr "Result is final"
+
+msgid "Result time"
+msgstr "Result time"
+
+msgid "ResultList"
+msgstr "ResultList"
+
+msgid "ResultListAllSplits"
+msgstr "ResultListAllSplits"
+
+msgid "Results"
+msgstr "Results"
+
+msgid "Reverse mode"
+msgstr "Reverse mode"
+
+msgid "Right"
+msgstr "Right"
+
+msgid "Rounding down"
+msgstr "Rounding down"
+
+msgid "Rounding up"
+msgstr "Rounding up"
+
+msgid "SPORTident master station CSV"
+msgstr "SPORTident master station CSV"
+
+msgid "SPORTident readout"
+msgstr "SPORTident readout"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "Save As"
+msgstr "Save As"
+
+msgid "Save As HTML file"
+msgstr "Save As HTML file"
+
+msgid "Save As IOF xml"
+msgstr "Save As IOF xml"
+
+msgid "Save As MS Word file"
+msgstr "Save As MS Word file"
+
+msgid "Save As WDB file"
+msgstr "Save As WDB file"
+
+msgid "Save WDB file"
+msgstr "Save WDB file"
+
+msgid "Save file before exit?"
+msgstr "Save file before exit?"
+
+msgid "Save in UTF-8 encoding"
+msgstr "Save in UTF-8 encoding"
+
+msgid "Save to last file"
+msgstr "Save to last file"
+
+msgid "Scores"
+msgstr "Scores"
+
+msgid "Scores assign"
+msgstr "Scores assign"
+
+msgid "Search"
+msgstr "Search"
+
+msgid "Secretary"
+msgstr "Secretary"
+
+msgid "Send results"
+msgstr "Send results"
+
+msgid "Send selected"
+msgstr "Send selected"
+
+msgid "Sending the entire contents of the chip"
+msgstr "Sending the entire contents of the chip"
+
+msgid "Separator"
+msgstr "Separator"
+
+msgid "Server"
+msgstr "Server"
+
+msgid "Service"
+msgstr "Service"
+
+msgid "Set DNS numbers"
+msgstr "Set DNS numbers"
+
+msgid "Settings"
+msgstr "Settings"
+
+msgid "Several athletes on one minute"
+msgstr "Several athletes on one minute"
+
+msgid "Several readout of chip"
+msgstr "Several readout of chip"
+
+msgid "Several results"
+msgstr "Several results"
+
+msgid "Show toolbar"
+msgstr "Show toolbar"
+
+msgid "Sounds"
+msgstr "Sounds"
+
+msgid "Source number"
+msgstr "Source number"
+
+msgid "Specify in each row all control codes separated by comma, e.g. '31,32'"
+msgstr ""
+"Specify in each row all control codes separated by comma, e.g. '31,32'"
+
+msgid "Split by regions"
+msgstr "Split by regions"
+
+msgid "Split by start groups"
+msgstr "Split by start groups"
+
+msgid "Split by teams"
+msgstr "Split by teams"
+
+msgid "Split printout"
+msgstr "Split printout"
+
+msgid "Splits"
+msgstr "Splits"
+
+msgid "SportOrg (*.json)"
+msgstr "SportOrg (*.json)"
+
+msgid "SportOrg HTML"
+msgstr "SportOrg HTML"
+
+msgid "SportOrg HTML report (*.html)"
+msgstr "SportOrg HTML report (*.html)"
+
+msgid "SportOrg SI log"
+msgstr "SportOrg SI log"
+
+msgid "SportOrg SI log (*.log)"
+msgstr "SportOrg SI log (*.log)"
+
+msgid "SportOrg file (*.json)"
+msgstr "SportOrg file (*.json)"
+
+msgid "SportOrg printing"
+msgstr "SportOrg printing"
+
+msgid "Stage timing URL"
+msgstr "Stage timing URL"
+
+msgid "Start"
+msgstr "Start"
+
+msgid "Start CP"
+msgstr "Start CP"
+
+msgid "Start Preparation"
+msgstr "Start Preparation"
+
+msgid "Start corridor"
+msgstr "Start corridor"
+
+msgid "Start date"
+msgstr "Start date"
+
+msgid "Start fee"
+msgstr "Start fee"
+
+msgid "Start gate"
+msgstr "Start gate"
+
+msgid "Start group"
+msgstr "Start group"
+
+msgid "Start interval"
+msgstr "Start interval"
+
+msgid "Start numbers"
+msgstr "Start numbers"
+
+msgid "Start station"
+msgstr "Start station"
+
+msgid "Start time"
+msgstr "Start time"
+
+msgid "Start time change"
+msgstr "Start time change"
+
+msgid "Start time for 2 group"
+msgstr "Start time for 2 group"
+
+msgid "StartList"
+msgstr "StartList"
+
+msgid ""
+"Station number on the penalty lap\n"
+"A competitor must punch at the station\n"
+"each time they pass the penalty lap"
+msgstr ""
+"Station number on the penalty lap\n"
+"A competitor must punch at the station\n"
+"each time they pass the penalty lap"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Status: DSQ"
+msgstr "Status: DSQ"
+
+msgid "Status: OK"
+msgstr "Status: OK"
+
+msgid "Stop"
+msgstr "Stop"
+
+msgid "Sub title"
+msgstr "Sub title"
+
+msgid "Successful result"
+msgstr "Successful result"
+
+msgid "Surname"
+msgstr "Surname"
+
+msgid "Tab doesn't exist"
+msgstr "Tab doesn't exist"
+
+msgid "Take start interval from group settings"
+msgstr "Take start interval from group settings"
+
+msgid "Target number"
+msgstr "Target number"
+
+msgid "Team"
+msgstr "Team"
+
+msgid "Team properties"
+msgstr "Team properties"
+
+msgid "Team result"
+msgstr "Team result"
+
+msgid "Teams"
+msgstr "Teams"
+
+msgid "Teamwork"
+msgstr "Teamwork"
+
+msgid "Telegram"
+msgstr "Telegram"
+
+msgid "Template"
+msgstr "Template"
+
+msgid "Text"
+msgstr "Text"
+
+msgid "Text exchange"
+msgstr "Text exchange"
+
+msgid "The search has not given any results"
+msgstr "The search has not given any results"
+
+msgid "Thread id"
+msgstr "Thread id"
+
+msgid "Time rounding"
+msgstr "Time rounding"
+
+msgid "Timekeeping settings"
+msgstr "Timekeeping settings"
+
+msgid "Token"
+msgstr "Token"
+
+msgid "Toolbar"
+msgstr "Toolbar"
+
+msgid "Top"
+msgstr "Top"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Type connection"
+msgstr "Type connection"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "URL not valid"
+msgstr "URL not valid"
+
+msgid "Unique id"
+msgstr "Unique id"
+
+msgid "Unsuccessful result"
+msgstr "Unsuccessful result"
+
+msgid "Up"
+msgstr "Up"
+
+msgid "Update available"
+msgstr "Update available"
+
+msgid "Use bib as card number"
+msgstr "Use bib as card number"
+
+msgid "Use birthday"
+msgstr "Use birthday"
+
+msgid "Use card number as bib"
+msgstr "Use card number as bib"
+
+msgid ""
+"Use this option to count one punch several times, e.g. in trails with ring "
+"punching"
+msgstr ""
+"Use this option to count one punch several times, e.g. in trails with ring "
+"punching"
+
+msgid "Value"
+msgstr "Value"
+
+msgid "Value list"
+msgstr "Value list"
+
+msgid "Values"
+msgstr "Values"
+
+msgid "View"
+msgstr "View"
+
+msgid "Viewer group URL"
+msgstr "Viewer group URL"
+
+msgid "Viewer summary URL"
+msgstr "Viewer summary URL"
+
+msgid "WDB Winorient"
+msgstr "WDB Winorient"
+
+msgid "WDB Winorient (*.wdb)"
+msgstr "WDB Winorient (*.wdb)"
+
+msgid "WDB file (*.wdb)"
+msgstr "WDB file (*.wdb)"
+
+msgid "Web timing"
+msgstr "Web timing"
+
+msgid "Who can win you"
+msgstr "Who can win you"
+
+msgid "World code"
+msgstr "World code"
+
+msgid "Year"
+msgstr "Year"
+
+msgid "Year of birth"
+msgstr "Year of birth"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "You are using the latest version"
+msgstr "You are using the latest version"
+
+msgid "Zero time"
+msgstr "Zero time"
+
+msgid "allow duplicates"
+msgstr "allow duplicates"
+
+msgid "ardf"
+msgstr "ardf"
+
+msgid "by scores (rogaine)"
+msgstr "by scores (rogaine)"
+
+msgid "by time"
+msgstr "by time"
+
+msgid "contain"
+msgstr "contain"
+
+msgid "counting lap"
+msgstr "counting lap"
+
+msgid "custom"
+msgstr "custom"
+
+msgid "doesn't contain"
+msgstr "doesn't contain"
+
+msgid "equal to"
+msgstr "equal to"
+
+msgid "fixed scores"
+msgstr "fixed scores"
+
+msgid "from"
+msgstr "from"
+
+msgid "interval"
+msgstr "interval"
+
+msgid "is paid"
+msgstr "is paid"
+
+msgid "lap station"
+msgstr "lap station"
+
+msgid "laps"
+msgstr "laps"
+
+msgid "maximum overrun time"
+msgstr "maximum overrun time"
+
+msgid "minute penalty"
+msgstr "minute penalty"
+
+msgid "no penalty"
+msgstr "no penalty"
+
+msgid "not found"
+msgstr "not found"
+
+msgid "o/c"
+msgstr "o/c"
+
+msgid "on/off RFID Impinj readout"
+msgstr "on/off RFID Impinj readout"
+
+msgid "on/off SFR readout"
+msgstr "on/off SFR readout"
+
+msgid "on/off SPORTident readout"
+msgstr "on/off SPORTident readout"
+
+msgid "on/off SRPid readout"
+msgstr "on/off SRPid readout"
+
+msgid "on/off Sportiduino readout"
+msgstr "on/off Sportiduino readout"
+
+msgid "out of competition"
+msgstr "out of competition"
+
+msgid "penalty laps"
+msgstr "penalty laps"
+
+msgid "penalty time"
+msgstr "penalty time"
+
+msgid "personal participation"
+msgstr "personal participation"
+
+msgid "points"
+msgstr "points"
+
+msgid "rented card"
+msgstr "rented card"
+
+msgid "rogain scores"
+msgstr "rogain scores"
+
+msgid "scale"
+msgstr "scale"
+
+msgid "scores array"
+msgstr "scores array"
+
+msgid "scores formula"
+msgstr "scores formula"
+
+msgid "scores formula hint"
+msgstr "scores formula hint"
+
+msgid "scores off"
+msgstr "scores off"
+
+msgid "select"
+msgstr "select"
+
+msgid "semicolon"
+msgstr "semicolon"
+
+msgid "space"
+msgstr "space"
+
+msgid "tab"
+msgstr "tab"
+
+msgid "total"
+msgstr "total"
+
+msgid "wrong action"
+msgstr "wrong action"

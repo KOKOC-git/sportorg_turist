@@ -200,4 +200,7 @@ class EventPropertiesDialog(QDialog):
         obj.data.relay_leg_count = self.item_relay_legs.value()
         obj.set_setting('system_zero_time', (start_date.hour, start_date.minute, 0))
         ResultCalculation(race()).process_results()
-        GlobalAccess().get_main_window().set_title()
+        main_window = GlobalAccess().get_main_window()
+        main_window.set_title()
+        if hasattr(main_window, 'rebuild_menu'):
+            main_window.rebuild_menu()

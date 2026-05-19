@@ -19,13 +19,14 @@ from PySide6.QtWidgets import (
 )
 
 from sportorg.language import translate
+from sportorg.gui.dialogs.tourism_time_edit import TourismTimeEdit
 from sportorg.models.memory import race
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.tourism import (
     CompetitionType,
     TourismJudgingMode,
     TourismStageDecision,
-    ensure_tourism_defaults,
+    ensure_tourism_defaults, repair_tourism_data, repair_tourism_courses_from_stages,
     hms_to_sec,
     sec_to_hms,
 )
@@ -44,6 +45,9 @@ class TourismStagePenaltiesDialog(QDialog):
         self.resize(1200, 720)
 
         ensure_tourism_defaults(race())
+        repair_tourism_data(race())
+        repair_tourism_courses_from_stages(race())
+        repair_tourism_courses_from_stages(race())
 
         self.stage_ids = []
         self.person_ids = []
@@ -261,7 +265,7 @@ class TourismStagePenaltiesDialog(QDialog):
             self.table.setItem(row, 2, group_item)
             self.table.setItem(row, 3, team_item)
 
-            penalty_time = QLineEdit()
+            penalty_time = TourismTimeEdit()
             penalty_time.setPlaceholderText('HH:MM:SS')
             penalty_time.setEnabled(is_penalty_mode)
 
@@ -269,7 +273,7 @@ class TourismStagePenaltiesDialog(QDialog):
             penalty_points.setPlaceholderText('0')
             penalty_points.setEnabled(is_penalty_mode)
 
-            cutoff_time = QLineEdit()
+            cutoff_time = TourismTimeEdit()
             cutoff_time.setPlaceholderText('HH:MM:SS')
 
             stage_dsq = QCheckBox()

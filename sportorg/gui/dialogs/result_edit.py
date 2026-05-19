@@ -23,6 +23,7 @@ from sportorg.gui.dialogs.person_edit import PersonEditDialog
 from sportorg.gui.global_access import GlobalAccess
 from sportorg.gui.utils.custom_controls import AdvComboBox, AdvSpinBox, AdvTimeEdit
 from sportorg.language import translate
+from sportorg.gui.dialogs.tourism_time_edit import TourismTimeEdit
 from sportorg.models.constant import StatusComments
 from sportorg.models.memory import Limit, Result, ResultStatus, Split, race
 from sportorg.models.result.result_calculation import ResultCalculation

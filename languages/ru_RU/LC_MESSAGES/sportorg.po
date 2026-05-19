@@ -71,7 +71,7 @@ msgid "Course properties"
 msgstr "Свойства дистанции"
 
 msgid "Name"
-msgstr "Название"
+msgstr "Имя"
 
 msgid "Length"
 msgstr "Длина"
@@ -359,7 +359,7 @@ msgid "Penalty laps"
 msgstr "Штрафные круги"
 
 msgid "Penalty legs"
-msgstr "Штраф, круги"
+msgstr "Штрафные круги"
 
 msgid "Splits"
 msgstr "Сплиты"
@@ -1043,7 +1043,7 @@ msgid "Place"
 msgstr "Место"
 
 msgid "Course name"
-msgstr "Дистанция"
+msgstr "Название дистанции"
 
 msgid "Chip"
 msgstr "Чип"
@@ -1732,10 +1732,10 @@ msgid "Groups assigned to course"
 msgstr "Группы, назначенные на дистанцию"
 
 msgid "Enter stages for the selected course in the order they are passed"
-msgstr "Введите этапы выбранной дистанции в порядке их прохождения"
+msgstr "Введите этапы для выбранной дистанции в порядке прохождения"
 
 msgid "This function is available only for Tourism competition type"
-msgstr "Эта функция доступна только для вида соревнований «Туризм»"
+msgstr "Эта функция доступна только для вида соревнований Туризм"
 
 msgid "No tourism stages found. Please create stages first"
 msgstr "Этапы туризма не найдены. Сначала создайте этапы"
@@ -1744,7 +1744,7 @@ msgid "No stages configured for competitor group"
 msgstr "Для группы участника не настроены этапы"
 
 msgid "Competitor group is not configured as Tourism"
-msgstr "Группа участника не настроена как «Туризм»"
+msgstr "Группа участника не настроена как Туризм"
 
 msgid "Competitor not found"
 msgstr "Участник не найден"
@@ -1797,3 +1797,105 @@ msgstr "Не указана ни одна санкция"
 
 msgid "Cannot set both penalty time and penalty points"
 msgstr "Нельзя одновременно задать штраф временем и штраф баллами"
+
+msgid "00:00:00"
+msgstr ""
+
+msgid "Assign"
+msgstr ""
+
+msgid "Assign stage penalties"
+msgstr "Назначить штрафы по этапу"
+
+msgid "Clean time"
+msgstr "Чистое время"
+
+msgid "Close"
+msgstr "Закрыть"
+
+msgid "Competition type"
+msgstr "Вид соревнований"
+
+msgid "Down"
+msgstr "Ниже"
+
+msgid "Finish timing URL"
+msgstr ""
+
+msgid "Individual"
+msgstr ""
+
+msgid "Inherit from event"
+msgstr ""
+
+msgid "Manual finish queue"
+msgstr ""
+
+msgid "Open IOF xml"
+msgstr ""
+
+msgid "Open SportOrg json"
+msgstr ""
+
+msgid "Order"
+msgstr "Порядок"
+
+msgid "Pending manual finishes"
+msgstr ""
+
+msgid "Queue"
+msgstr ""
+
+msgid "Remove last"
+msgstr ""
+
+msgid "Remove selected"
+msgstr ""
+
+msgid "Stage timing URL"
+msgstr ""
+
+msgid "Stop"
+msgstr ""
+
+msgid "Surname"
+msgstr "Фамилия"
+
+msgid "Thread id"
+msgstr ""
+
+msgid "Up"
+msgstr "Выше"
+
+msgid "Viewer group URL"
+msgstr ""
+
+msgid "Viewer summary URL"
+msgstr ""
+
+msgid "Web timing"
+msgstr ""
+
+msgid "wrong action"
+msgstr ""
+
+msgid "Clean result"
+msgstr "Чистое время"
+
+msgid "Final result"
+msgstr "Итоговое время"
+
+msgid "Result with penalties"
+msgstr "Время со штрафами"
+
+msgid "Result with penalties / cutoff"
+msgstr "Время со штрафами / отсечками"
+
+msgid "No stages configured for selected course"
+msgstr "Для выбранной дистанции не настроены этапы"
+
+msgid "Enter stages for the selected group in the order they are passed"
+msgstr "Введите этапы для выбранной группы в порядке прохождения"
+
+msgid "Course is not selected"
+msgstr "Дистанция не выбрана"

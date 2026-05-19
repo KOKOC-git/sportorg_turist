@@ -22,7 +22,7 @@ from sportorg.models.tourism import (
     CompetitionType,
     TourismCourse,
     TourismStage,
-    ensure_tourism_defaults, normalize_tourism_links,
+    ensure_tourism_defaults, repair_tourism_data, repair_tourism_courses_from_stages, normalize_tourism_links,
 )
 
 
@@ -33,6 +33,9 @@ class TourismStagesDialog(QDialog):
         self.resize(900, 640)
 
         ensure_tourism_defaults(race())
+        repair_tourism_data(race())
+        repair_tourism_courses_from_stages(race())
+        repair_tourism_courses_from_stages(race())
         self.current_course_id = None
         self.group_checkboxes = {}
 
@@ -110,6 +113,8 @@ class TourismStagesDialog(QDialog):
     def ensure_initial_courses(self):
         obj = race()
         ensure_tourism_defaults(obj)
+        repair_tourism_courses_from_stages(obj)
+        repair_tourism_courses_from_stages(obj)
 
         if not getattr(obj, 'tourism_courses', []):
             if obj.courses:
@@ -227,6 +232,7 @@ class TourismStagesDialog(QDialog):
         self.groups_layout.addStretch(1)
 
     def load_data(self):
+        repair_tourism_data(race())
         course = self.get_current_course()
         if not course:
             self.course_name.setText('')

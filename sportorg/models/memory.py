@@ -20,6 +20,7 @@ from sportorg.models.tourism import (
     TourismJudgingMode,
     TourismStage,
     TourismStageDecision,
+    TourismCourse,
 )
 
 
@@ -1632,6 +1633,7 @@ class Race(Model):
         self.settings: Dict[str, Any] = {}
         self.competition_type = CompetitionType.INDIVIDUAL.value
         self.tourism_judging_mode = TourismJudgingMode.PENALTY.value
+        self.tourism_courses: List[TourismCourse] = []
         self.tourism_stages: List[TourismStage] = []
         self.tourism_stage_decisions: List[TourismStageDecision] = []
         self.web_stage_passages = []
@@ -1689,6 +1691,7 @@ class Race(Model):
             'settings': self.settings,
             'competition_type': self.competition_type,
             'tourism_judging_mode': self.tourism_judging_mode,
+            'tourism_courses': [item.to_dict() for item in self.tourism_courses],
             'tourism_stages': [item.to_dict() for item in self.tourism_stages],
             'tourism_stage_decisions': [item.to_dict() for item in self.tourism_stage_decisions],
             'organizations': [item.to_dict() for item in self.organizations],
@@ -1804,6 +1807,10 @@ class Race(Model):
                 'tourism_judging_mode',
                 TourismJudgingMode.PENALTY.value,
             )
+            self.tourism_courses = [
+                TourismCourse.from_dict(item)
+                for item in dict_obj.get('tourism_courses', [])
+            ]
             self.tourism_stages = [
                 TourismStage.from_dict(item)
                 for item in dict_obj.get('tourism_stages', [])
@@ -1812,6 +1819,9 @@ class Race(Model):
                 TourismStageDecision.from_dict(item)
                 for item in dict_obj.get('tourism_stage_decisions', [])
             ]
+
+            from sportorg.models.tourism import ensure_tourism_defaults
+            ensure_tourism_defaults(self)
             key_list = ['organizations', 'courses', 'groups', 'persons', 'results']
             for key in key_list:
                 if key in dict_obj:

@@ -20,13 +20,31 @@ from PySide6.QtWidgets import (
 )
 
 from sportorg.language import translate
+
+
+class TourismTimeEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setInputMask("99:99:99;_")
+        self.setPlaceholderText("HH:MM:SS")
+
+    def text(self):
+        value = super().text()
+        # Если пользователь ничего не ввёл, QLineEdit с маской возвращает "__:__:__".
+        # Для расчёта это должно считаться пустым значением.
+        if not value or value.replace(":", "").replace("_", "").strip() == "":
+            return ""
+        return value
+
+
+from sportorg.gui.dialogs.tourism_time_edit import TourismTimeEdit
 from sportorg.models.memory import race
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.tourism import (
     CompetitionType,
     TourismJudgingMode,
     TourismStageDecision,
-    ensure_tourism_defaults,
+    ensure_tourism_defaults, repair_tourism_data, repair_tourism_courses_from_stages,
     get_tourism_stages_for_group,
     hms_to_sec,
     sec_to_hms,
@@ -41,6 +59,9 @@ class TourismPenaltiesDialog(QDialog):
         self.resize(1050, 700)
 
         ensure_tourism_defaults(race())
+        repair_tourism_data(race())
+        repair_tourism_courses_from_stages(race())
+        repair_tourism_courses_from_stages(race())
 
         self.current_person = None
         self.stage_ids = []
@@ -209,16 +230,14 @@ class TourismPenaltiesDialog(QDialog):
             stage_item.setFlags(stage_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row, 0, stage_item)
 
-            penalty_time = QLineEdit()
-            penalty_time.setPlaceholderText('HH:MM:SS')
+            penalty_time = TourismTimeEdit()
             penalty_time.setEnabled(is_penalty_mode)
 
             penalty_points = QLineEdit()
             penalty_points.setPlaceholderText('0')
             penalty_points.setEnabled(is_penalty_mode)
 
-            cutoff_time = QLineEdit()
-            cutoff_time.setPlaceholderText('HH:MM:SS')
+            cutoff_time = TourismTimeEdit()
 
             stage_dsq = QCheckBox()
 

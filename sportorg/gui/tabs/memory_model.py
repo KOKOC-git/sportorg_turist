@@ -1,3 +1,4 @@
+from sportorg.common.otime import OTime
 import logging
 import re
 import uuid
@@ -347,6 +348,7 @@ class ResultMemoryModel(AbstractSportOrgMemoryModel):
             translate('Team'),
             translate('Place'),
             translate('Result'),
+            translate('Clean time'),
             translate('Diff'),
             translate('Status'),
             translate('Bib'),
@@ -412,6 +414,25 @@ class ResultMemoryModel(AbstractSportOrgMemoryModel):
             time_accuracy = self.race.get_setting('time_accuracy', 0)
             finish = i.get_finish_time().to_str(time_accuracy)
 
+        clean_result = ''
+        start_time = i.get_start_time()
+        finish_time = i.get_finish_time()
+        if start_time and finish_time:
+            start_msec = start_time.to_msec()
+            finish_msec = finish_time.to_msec()
+            day_msec = 24 * 60 * 60 * 1000
+
+            # Чистое время = финиш - старт без штрафов и отсечек.
+            # Если финиш меньше старта, значит участник финишировал после перехода через сутки.
+            clean_msec = finish_msec - start_msec
+            while clean_msec < 0:
+                clean_msec += day_msec
+
+            # Если в результате вручную указаны дни, дополнительно учитываем их.
+            clean_msec += int(getattr(i, 'days', 0) or 0) * day_msec
+
+            clean_result = time_to_hhmmss(OTime(msec=clean_msec))
+
         ret = [
             last_name,
             first_name,
@@ -419,14 +440,25 @@ class ResultMemoryModel(AbstractSportOrgMemoryModel):
             team,
             i.get_place(),
             i.get_result(),
+            clean_result,
             time_to_hhmmss(i.diff),
             i.status.get_title(),
             bib,
             i.card_number,
             start,
             finish,
-            time_to_hhmmss(i.get_credit_time()),
-            time_to_hhmmss(i.get_penalty_time()),
+            (
+                time_to_hhmmss(i.tourism_credit_time)
+                if getattr(race(), 'competition_type', '') == 'tourism'
+                and getattr(i, 'tourism_credit_time', None)
+                else time_to_hhmmss(i.get_credit_time())
+            ),
+            (
+                time_to_hhmmss(i.tourism_penalty_time)
+                if getattr(race(), 'competition_type', '') == 'tourism'
+                and getattr(i, 'tourism_penalty_time', None)
+                else time_to_hhmmss(i.get_penalty_time())
+            ),
             i.penalty_laps,
             str(i.system_type),
             rented_card,

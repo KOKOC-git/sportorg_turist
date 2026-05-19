@@ -9,7 +9,7 @@ from sportorg.gui.global_access import GlobalAccess
 from sportorg.gui.tabs.memory_model import CourseMemoryModel
 from sportorg.gui.tabs.table import TableView
 from sportorg.models.memory import race
-from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults
+from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults, repair_tourism_courses_from_stages
 
 
 class CoursesTableView(TableView):
@@ -29,6 +29,8 @@ class Widget(QtWidgets.QWidget):
     def _is_tourism(self):
         obj = race()
         ensure_tourism_defaults(obj)
+        repair_tourism_courses_from_stages(obj)
+        repair_tourism_courses_from_stages(obj)
         return getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
 
     def _open_tourism_stages(self):

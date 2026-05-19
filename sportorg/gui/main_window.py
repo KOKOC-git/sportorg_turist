@@ -499,6 +499,15 @@ class MainWindow(QMainWindow):
     def deleyed_res_recalculate(self, delay=1000):  # msec
         self.res_recalculate.start(delay)
 
+    def rebuild_menu(self):
+        try:
+            self.menu_list_for_disabled = []
+            self.menubar.clear()
+            self._create_menu(self.menubar, menu_list())
+            self._menu_disable(self.current_tab)
+        except Exception as e:
+            logging.error(str(e))
+
     def refresh(self):
         logging.debug('Refreshing interface')
         current_widget = self.tabwidget.currentWidget()
