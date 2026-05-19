@@ -18,6 +18,7 @@ TOURISM_TEAM_TYPES = {
 @dataclass
 class TourismStandingRow:
     place: str
+    group_name: str
     team_name: str
     scores: int
     unit_count: int
@@ -37,10 +38,40 @@ def _team_name_from_person(person) -> str:
     return 'Без коллектива'
 
 
-def _group_name_from_person(person) -> str:
+def _source_group_name_from_person(person) -> str:
     if person and person.group:
         return person.group.name
-    return ''
+    return 'Без группы'
+
+
+def _combined_age_group_name(group_name: str) -> str:
+    """Объединяет женские и мужские группы в одну зачётную возрастную категорию.
+
+    Примеры:
+    Ж-KINDER -> KINDER
+    М-KINDER -> KINDER
+    Ж-МАЛ-ДЕВ -> МАЛ-ДЕВ
+    М-МАЛ-ДЕВ -> МАЛ-ДЕВ
+    Ж-ЮН-ДЕВ (14-15 ЛЕТ) -> ЮН-ДЕВ (14-15 ЛЕТ)
+    М-ЮН-ДЕВ (14-15 ЛЕТ) -> ЮН-ДЕВ (14-15 ЛЕТ)
+    """
+    group_name = str(group_name or '').strip()
+
+    if not group_name:
+        return 'Без группы'
+
+    normalized = group_name.replace('—', '-').replace('–', '-').strip()
+    upper = normalized.upper()
+
+    for prefix in ('Ж-', 'М-'):
+        if upper.startswith(prefix):
+            return normalized[2:].strip() or group_name
+
+    # Запасной вариант для записей вида "Ж KINDER" или "М KINDER".
+    if len(normalized) > 2 and upper[0] in ('Ж', 'М') and normalized[1].isspace():
+        return normalized[2:].strip() or group_name
+
+    return group_name
 
 
 def _is_female_group_name(group_name: str, female_prefix: str) -> bool:
@@ -110,11 +141,9 @@ def _apply_team_score_rules(
 
     female_rest = [item for item in rest if item.is_female]
     if not female_rest:
-        # Женских результатов не хватает физически — считаем по доступным данным.
+        # Женских результатов физически не хватает — считаем по доступным данным.
         return selected
 
-    # Заменяем самые слабые неженские результаты в выбранной части
-    # на лучшие женские результаты из оставшихся.
     selected_non_female = [item for item in selected if not item.is_female]
     selected_non_female = sorted(selected_non_female, key=lambda item: item.scores)
 
@@ -130,7 +159,11 @@ def _apply_team_score_rules(
     return sorted(selected, key=lambda item: item.scores, reverse=True)
 
 
-def _standing_rows(team_items: Dict[str, List[TourismTeamScoreItem]], obj) -> List[TourismStandingRow]:
+def _standing_rows_for_group(
+    group_name: str,
+    team_items: Dict[str, List[TourismTeamScoreItem]],
+    obj,
+) -> List[TourismStandingRow]:
     count_scores, min_female_count, _female_prefix = _get_standings_settings(obj)
 
     raw_rows = []
@@ -148,6 +181,7 @@ def _standing_rows(team_items: Dict[str, List[TourismTeamScoreItem]], obj) -> Li
         raw_rows.append(
             TourismStandingRow(
                 place='',
+                group_name=group_name,
                 team_name=team_name,
                 scores=int(total_scores or 0),
                 unit_count=len(counted_items),
@@ -165,6 +199,7 @@ def _standing_rows(team_items: Dict[str, List[TourismTeamScoreItem]], obj) -> Li
             current_place = index
             previous_scores = row.scores
 
+        # Команды с нулевыми очками место не получают.
         row.place = current_place if row.scores > 0 else ''
 
     return raw_rows
@@ -174,20 +209,36 @@ def _build_individual_standings(obj):
     scores_array = get_tourism_scores_array(obj)
     _count_scores, _min_female_count, female_prefix = _get_standings_settings(obj)
 
-    # В личной дистанции места считаем внутри возрастной группы.
-    grouped_results = {}
+    # ВАЖНО:
+    # Командный зачёт считается по объединённой возрастной категории:
+    # Ж-KINDER + М-KINDER = KINDER.
+    # Но личные места для начисления очков считаются внутри исходных групп Ж/М.
+    grouped_results_by_source_group = {}
 
     for result in getattr(obj, 'results', []):
         person = getattr(result, 'person', None)
-        if not person or not person.group:
+        if not person:
             continue
 
-        grouped_results.setdefault(str(person.group.id), []).append(result)
+        source_group_name = _source_group_name_from_person(person)
+        grouped_results_by_source_group.setdefault(source_group_name, []).append(result)
 
-    team_items: Dict[str, List[TourismTeamScoreItem]] = {}
+    # team_items_by_combined_group:
+    # {
+    #   'KINDER': {
+    #       'Команда 1': [очки из Ж-KINDER и М-KINDER],
+    #   }
+    # }
+    team_items_by_combined_group: Dict[str, Dict[str, List[TourismTeamScoreItem]]] = {}
 
-    for _group_id, results in grouped_results.items():
-        results = sorted(results, key=_sort_result_key)
+    for source_group_name in sorted(grouped_results_by_source_group.keys(), key=lambda x: x.lower()):
+        results = sorted(
+            grouped_results_by_source_group[source_group_name],
+            key=_sort_result_key,
+        )
+
+        combined_group_name = _combined_age_group_name(source_group_name)
+        is_female = _is_female_group_name(source_group_name, female_prefix)
 
         current_place = 0
         previous_time = None
@@ -209,11 +260,15 @@ def _build_individual_standings(obj):
 
             scores = get_score_by_place(scores_array, current_place)
             team_name = _team_name_from_person(result.person)
-            group_name = _group_name_from_person(result.person)
-            is_female = _is_female_group_name(group_name, female_prefix)
 
-            detail = f'{result.person.full_name} [{group_name}]: {current_place} место, {scores} очк.'
-            team_items.setdefault(team_name, []).append(
+            detail = (
+                f'{result.person.full_name} [{source_group_name}]: '
+                f'{current_place} место, {scores} очк.'
+            )
+
+            team_items_by_combined_group.setdefault(combined_group_name, {})
+            team_items_by_combined_group[combined_group_name].setdefault(team_name, [])
+            team_items_by_combined_group[combined_group_name][team_name].append(
                 TourismTeamScoreItem(
                     scores=scores,
                     detail=detail,
@@ -221,28 +276,45 @@ def _build_individual_standings(obj):
                 )
             )
 
-    return _standing_rows(team_items, obj)
+    all_rows: List[TourismStandingRow] = []
+
+    for combined_group_name in sorted(team_items_by_combined_group.keys(), key=lambda x: x.lower()):
+        all_rows.extend(
+            _standing_rows_for_group(
+                combined_group_name,
+                team_items_by_combined_group[combined_group_name],
+                obj,
+            )
+        )
+
+    return all_rows
 
 
 def _build_team_unit_standings(obj):
     _count_scores, _min_female_count, female_prefix = _get_standings_settings(obj)
     units = calculate_tourism_team_places_and_scores(obj)
 
-    team_items: Dict[str, List[TourismTeamScoreItem]] = {}
+    grouped_team_items: Dict[str, Dict[str, List[TourismTeamScoreItem]]] = {}
 
     for unit in units:
         scores = int(getattr(unit, 'tourism_scores', 0) or 0)
         if scores <= 0:
             continue
 
+        source_group_name = unit.group_name or 'Без группы'
+        combined_group_name = _combined_age_group_name(source_group_name)
         team_name = unit.team_name or 'Без коллектива'
-        group_name = unit.group_name or ''
-        is_female = _is_female_group_name(group_name, female_prefix)
+        is_female = _is_female_group_name(source_group_name, female_prefix)
 
         place = getattr(unit, 'place', '')
-        detail = f'№{unit.number} [{group_name}]: {place} место, {scores} очк. ({unit.members_text})'
+        detail = (
+            f'№{unit.number} [{source_group_name}]: '
+            f'{place} место, {scores} очк. ({unit.members_text})'
+        )
 
-        team_items.setdefault(team_name, []).append(
+        grouped_team_items.setdefault(combined_group_name, {})
+        grouped_team_items[combined_group_name].setdefault(team_name, [])
+        grouped_team_items[combined_group_name][team_name].append(
             TourismTeamScoreItem(
                 scores=scores,
                 detail=detail,
@@ -250,7 +322,18 @@ def _build_team_unit_standings(obj):
             )
         )
 
-    return _standing_rows(team_items, obj)
+    all_rows: List[TourismStandingRow] = []
+
+    for combined_group_name in sorted(grouped_team_items.keys(), key=lambda x: x.lower()):
+        all_rows.extend(
+            _standing_rows_for_group(
+                combined_group_name,
+                grouped_team_items[combined_group_name],
+                obj,
+            )
+        )
+
+    return all_rows
 
 
 def build_tourism_overall_standings(obj=None) -> List[TourismStandingRow]:
