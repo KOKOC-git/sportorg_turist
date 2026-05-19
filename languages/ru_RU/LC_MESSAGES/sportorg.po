@@ -554,7 +554,7 @@ msgid "HTML"
 msgstr ""
 
 msgid "Penalty time"
-msgstr "Штраф временем"
+msgstr "Штрафное время"
 
 msgid "Card number"
 msgstr "Номер чипа"
@@ -1675,7 +1675,7 @@ msgid "Tourism courses"
 msgstr "Дистанции туризма"
 
 msgid "Tourism course"
-msgstr "Дистанция туризма"
+msgstr "Туристская дистанция"
 
 msgid "Tourism course is not selected"
 msgstr "Дистанция туризма не выбрана"
@@ -1696,7 +1696,7 @@ msgid "Assign penalties by stage"
 msgstr "Назначить штрафы по этапу"
 
 msgid "Penalty points"
-msgstr "Штраф баллами"
+msgstr "Штрафные баллы"
 
 msgid "Cutoff"
 msgstr "Отсечка"
@@ -1899,3 +1899,30 @@ msgstr "Введите этапы для выбранной группы в по
 
 msgid "Course is not selected"
 msgstr "Дистанция не выбрана"
+
+msgid "Tourism individual"
+msgstr "Туризм — личная"
+
+msgid "Tourism pair"
+msgstr "Туризм — связка"
+
+msgid "Tourism group"
+msgstr "Туризм — группа"
+
+msgid "Tourism team number assign mode"
+msgstr "Режим назначения связок/групп"
+
+msgid "Tourism team number"
+msgstr "Номер связки/группы"
+
+msgid "First tourism team number"
+msgstr "Первый номер связки/группы"
+
+msgid "Tourism team members"
+msgstr "Составы связок/групп"
+
+msgid "Tourism team"
+msgstr "Связка/группа"
+
+msgid "Tourism team leg"
+msgstr "№ в составе"

@@ -67,7 +67,9 @@ class EventPropertiesDialog(QDialog):
         self.label_type = QLabel(translate('Competition type'))
         self.item_type = AdvComboBox()
         self.item_type.addItems(RaceType.get_titles())
-        self.item_type.addItem(translate('Tourism'))
+        self.item_type.addItem(translate('Tourism individual'))
+        self.item_type.addItem(translate('Tourism pair'))
+        self.item_type.addItem(translate('Tourism group'))
         self.layout.addRow(self.label_type, self.item_type)
 
         self.label_judging_mode = QLabel(translate('Judging mode'))
@@ -120,7 +122,12 @@ class EventPropertiesDialog(QDialog):
     def change_type(self):
         current_text = self.item_type.currentText()
         is_relay = current_text == RaceType.RELAY.get_title()
-        is_tourism = current_text == translate('Tourism')
+        is_tourism = current_text in [
+            translate('Tourism'),
+            translate('Tourism individual'),
+            translate('Tourism pair'),
+            translate('Tourism group'),
+        ]
 
         self.label_relay_legs.setVisible(is_relay)
         self.item_relay_legs.setVisible(is_relay)
@@ -142,8 +149,19 @@ class EventPropertiesDialog(QDialog):
         self.item_end_date.setDateTime(obj.data.get_end_datetime())
         self.item_relay_legs.setValue(obj.data.relay_leg_count)
 
-        if obj.competition_type == CompetitionType.TOURISM.value:
-            self.item_type.setCurrentText(translate('Tourism'))
+        if obj.competition_type in [
+            CompetitionType.TOURISM.value,
+            'tourism_individual',
+            'tourism_pair',
+            'tourism_group',
+        ]:
+            tourism_type_titles = {
+                CompetitionType.TOURISM.value: translate('Tourism individual'),
+                'tourism_individual': translate('Tourism individual'),
+                'tourism_pair': translate('Tourism pair'),
+                'tourism_group': translate('Tourism group'),
+            }
+            self.item_type.setCurrentText(tourism_type_titles.get(obj.competition_type, translate('Tourism individual')))
             if (
                 obj.tourism_judging_mode
                 == TourismJudgingMode.NO_PENALTY.value
@@ -181,8 +199,14 @@ class EventPropertiesDialog(QDialog):
         obj.data.end_datetime = end_date
 
         selected_type = self.item_type.currentText()
-        if selected_type == translate('Tourism'):
-            obj.competition_type = CompetitionType.TOURISM.value
+        tourism_type_values = {
+            translate('Tourism'): CompetitionType.TOURISM.value,
+            translate('Tourism individual'): 'tourism_individual',
+            translate('Tourism pair'): 'tourism_pair',
+            translate('Tourism group'): 'tourism_group',
+        }
+        if selected_type in tourism_type_values:
+            obj.competition_type = tourism_type_values[selected_type]
             obj.data.race_type = RaceType.INDIVIDUAL_RACE
             if self.item_judging_mode.currentText() == translate('No penalty'):
                 obj.tourism_judging_mode = TourismJudgingMode.NO_PENALTY.value

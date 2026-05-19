@@ -229,7 +229,9 @@ class GroupEditDialog(BaseDialog):
             translate('Inherit from event'),
             translate('Individual'),
             translate('Relay'),
-            translate('Tourism'),
+            translate('Tourism individual'),
+            translate('Tourism pair'),
+            translate('Tourism group'),
         ]
 
     def convert_competition_type(self, value) -> str:
@@ -238,7 +240,10 @@ class GroupEditDialog(BaseDialog):
         mapping = {
             CompetitionType.INDIVIDUAL.value: translate('Individual'),
             CompetitionType.RELAY.value: translate('Relay'),
-            CompetitionType.TOURISM.value: translate('Tourism'),
+            CompetitionType.TOURISM.value: translate('Tourism individual'),
+            'tourism_individual': translate('Tourism individual'),
+            'tourism_pair': translate('Tourism pair'),
+            'tourism_group': translate('Tourism group'),
         }
         return mapping.get(value, translate('Inherit from event'))
 
@@ -248,6 +253,9 @@ class GroupEditDialog(BaseDialog):
             translate('Individual'): CompetitionType.INDIVIDUAL.value,
             translate('Relay'): CompetitionType.RELAY.value,
             translate('Tourism'): CompetitionType.TOURISM.value,
+            translate('Tourism individual'): 'tourism_individual',
+            translate('Tourism pair'): 'tourism_pair',
+            translate('Tourism group'): 'tourism_group',
         }
         return mapping.get(text)
 

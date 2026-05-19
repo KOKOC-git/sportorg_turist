@@ -243,6 +243,15 @@ def _default_menu_list():
                     'action': 'RelayNumberAction',
                 },
                 {
+                    'title': translate('Tourism team number assign mode'),
+                    'shortcut': 'Ctrl+Shift+R',
+                    'action': 'TourismTeamNumberAction',
+                },
+                {
+                    'title': translate('Tourism team members'),
+                    'action': 'TourismTeamMembersAction',
+                },
+                {
                     'title': translate('Start time change'),
                     'action': 'StartTimeChangeAction',
                 },
@@ -554,6 +563,12 @@ def _tourism_menu_list():
             translate('Courses'),
             translate('Teams'),
         },
+        translate('Start Preparation'): {
+            translate('Start Preparation'),
+            translate('Relay number assign mode'),
+            translate('Tourism team number assign mode'),
+            translate('Tourism team members'),
+        },
         translate('Race'): {
             translate('Manual finish'),
             translate('Add SPORTident result'),
@@ -599,9 +614,7 @@ def _tourism_menu_list():
     }
 
     # Эти верхние меню в режиме Туризм полностью скрываем.
-    hidden_top_menus = {
-        translate('Start Preparation'),
-    }
+    hidden_top_menus = set()
 
     filtered_menu = []
 

@@ -1680,3 +1680,30 @@ msgstr "total"
 
 msgid "wrong action"
 msgstr "wrong action"
+
+msgid "Tourism individual"
+msgstr "Tourism individual"
+
+msgid "Tourism pair"
+msgstr "Tourism pair"
+
+msgid "Tourism group"
+msgstr "Tourism group"
+
+msgid "Tourism team number assign mode"
+msgstr "Tourism team number assign mode"
+
+msgid "Tourism team number"
+msgstr "Tourism team number"
+
+msgid "First tourism team number"
+msgstr "First tourism team number"
+
+msgid "Tourism team members"
+msgstr "Tourism team members"
+
+msgid "Tourism team"
+msgstr "Tourism team"
+
+msgid "Tourism team leg"
+msgstr "Tourism team leg"

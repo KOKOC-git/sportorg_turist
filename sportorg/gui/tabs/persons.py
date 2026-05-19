@@ -8,6 +8,7 @@ from sportorg.gui.tabs.memory_model import PersonMemoryModel
 from sportorg.gui.tabs.table import TableView
 from sportorg.models.memory import race
 from sportorg.models.start.relay import set_next_relay_number_to_person
+from sportorg.models.start.tourism_team import set_next_tourism_team_number_to_person
 
 
 class PersonsTableView(TableView):
@@ -57,10 +58,18 @@ class Widget(QtWidgets.QWidget):
         def entry_single_clicked(index):
             try:
                 obj = race()
-                if GlobalAccess().get_main_window().relay_number_assign:
+                main_window = GlobalAccess().get_main_window()
+
+                if getattr(main_window, 'tourism_team_number_assign', False):
+                    if index.row() < len(obj.persons):
+                        set_next_tourism_team_number_to_person(obj.persons[index.row()])
+                        main_window.refresh()
+                    return
+
+                if main_window.relay_number_assign:
                     if index.row() < len(obj.persons):
                         set_next_relay_number_to_person(obj.persons[index.row()])
-                        GlobalAccess().get_main_window().refresh()
+                        main_window.refresh()
 
             except Exception as e:
                 logging.error(str(e))

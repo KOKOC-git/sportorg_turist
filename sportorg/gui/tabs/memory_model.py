@@ -260,6 +260,8 @@ class PersonMemoryModel(AbstractSportOrgMemoryModel):
             translate('Start'),
             translate('Start group'),
             translate('Card title'),
+            translate('Tourism team'),
+            translate('Tourism team leg'),
             translate('Rented card'),
             translate('Comment'),
             translate('World code title'),
@@ -312,6 +314,8 @@ class PersonMemoryModel(AbstractSportOrgMemoryModel):
             ret.append('')
         ret.append(person.start_group)
         ret.append(person.card_number)
+        ret.append(getattr(person, 'tourism_team_number', 0) or '')
+        ret.append(getattr(person, 'tourism_team_leg', 0) or '')
         ret.append(
             translate('Rented card') if is_rented_card else translate('Rented stub')
         )

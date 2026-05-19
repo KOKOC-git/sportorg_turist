@@ -27,6 +27,8 @@ from sportorg.gui.dialogs.organization_mass_edit import OrganizationMassEditDial
 from sportorg.gui.dialogs.print_properties import PrintPropertiesDialog
 from sportorg.gui.dialogs.relay_clone_dialog import RelayCloneDialog
 from sportorg.gui.dialogs.relay_number_dialog import RelayNumberDialog
+from sportorg.gui.dialogs.tourism_team_number_dialog import TourismTeamNumberDialog
+from sportorg.gui.dialogs.tourism_team_members import TourismTeamMembersDialog
 from sportorg.gui.dialogs.rent_cards_dialog import RentCardsDialog
 from sportorg.gui.dialogs.report_dialog import ReportDialog
 from sportorg.gui.dialogs.search_dialog import SearchDialog
@@ -522,6 +524,26 @@ class RelayNumberAction(Action, metaclass=ActionFactory):
             self.app.relay_number_assign = True
             QApplication.setOverrideCursor(QtCore.Qt.PointingHandCursor)
             RelayNumberDialog().exec_()
+        self.app.refresh()
+
+
+class TourismTeamNumberAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        if getattr(self.app, 'tourism_team_number_assign', False):
+            self.app.tourism_team_number_assign = False
+            QApplication.restoreOverrideCursor()
+        else:
+            self.app.tourism_team_number_assign = True
+            # Одновременно выключаем эстафетный режим, чтобы режимы не конфликтовали.
+            self.app.relay_number_assign = False
+            QApplication.setOverrideCursor(QtCore.Qt.PointingHandCursor)
+            TourismTeamNumberDialog().exec_()
+        self.app.refresh()
+
+
+class TourismTeamMembersAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        TourismTeamMembersDialog(self.app).exec()
         self.app.refresh()
 
 

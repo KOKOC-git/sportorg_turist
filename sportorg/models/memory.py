@@ -1369,6 +1369,8 @@ class Person(Model):
 
         self._card_number = 0
         self._bib = 0
+        self.tourism_team_number = 0
+        self.tourism_team_leg = 0
 
         self.birth_date: Optional[date] = None
         self.organization: Optional[Organization] = None
@@ -1434,6 +1436,8 @@ class Person(Model):
             'name': self.name,
             'surname': self.surname,
             'card_number': self.card_number,
+            'tourism_team_number': getattr(self, 'tourism_team_number', 0),
+            'tourism_team_leg': getattr(self, 'tourism_team_leg', 0),
             'bib': self.bib,
             'birth_date': str(self.birth_date) if self.birth_date else None,
             'year': (
@@ -1459,6 +1463,8 @@ class Person(Model):
         self.surname = str(data['surname'])
         self.set_card_number(int(data['card_number']))
         self.set_bib(int(data['bib']))
+        self.tourism_team_number = int(data.get('tourism_team_number', 0) or 0)
+        self.tourism_team_leg = int(data.get('tourism_team_leg', 0) or 0)
         self.contact = []
         if data['world_code']:
             self.world_code = str(data['world_code'])
