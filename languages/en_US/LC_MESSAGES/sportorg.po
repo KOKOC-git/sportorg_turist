@@ -1784,3 +1784,12 @@ msgstr "Tourism team deleted, members cleared"
 
 msgid "Information"
 msgstr "Information"
+
+msgid "Age group"
+msgstr "Age group"
+
+msgid "All age groups"
+msgstr "All age groups"
+
+msgid "Without group"
+msgstr "Without group"

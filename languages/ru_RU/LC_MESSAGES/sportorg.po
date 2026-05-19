@@ -2004,3 +2004,12 @@ msgstr "Связка/группа удалена, участников очищ�
 
 msgid "Information"
 msgstr "Информация"
+
+msgid "Age group"
+msgstr "Возрастная группа"
+
+msgid "All age groups"
+msgstr "Все возрастные группы"
+
+msgid "Without group"
+msgstr "Без группы"
