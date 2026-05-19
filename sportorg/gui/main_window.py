@@ -109,6 +109,7 @@ class MainWindow(QMainWindow):
 
         self.last_update = time.time()
         self.relay_number_assign = False
+        self.tourism_team_number_assign = False
         self.split_printer_thread = None
         self.split_printer_queue = None
 
