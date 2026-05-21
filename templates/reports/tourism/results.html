@@ -8,6 +8,13 @@
     <h2>ПРОТОКОЛ РЕЗУЛЬТАТОВ — ТУРИЗМ</h2>
 </div>
 
+<div class="tourism-report-controls">
+    <label>
+        <input type="checkbox" id="show-stage-penalties" checked>
+        Показывать штрафы по этапам
+    </label>
+</div>
+
 <div id="tourism-results"></div>
 
 {% raw %}
@@ -49,6 +56,15 @@
     .text-center {
         text-align: center;
     }
+
+    .tourism-report-controls {
+        margin: 12px 0 16px 0;
+        font-size: 13px;
+    }
+
+    body.hide-stage-penalties .stage-penalties-col {
+        display: none;
+    }
 </style>
 
 <script>
@@ -60,6 +76,106 @@
             return '';
         }
         return String(value);
+    }
+
+    function toHHMMSSFromSec(sec) {
+        sec = Number(sec || 0);
+        if (!sec || sec < 0) {
+            return '';
+        }
+
+        var totalSeconds = Math.floor(sec);
+        var hours = Math.floor(totalSeconds / 3600);
+        var minutes = Math.floor((totalSeconds % 3600) / 60);
+        var seconds = totalSeconds % 60;
+
+        function pad(n) {
+            return n < 10 ? '0' + n : '' + n;
+        }
+
+        return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+    }
+
+    function getResultPersonId(result) {
+        if (!result || !result.person) {
+            return '';
+        }
+
+        return String(result.person.id || '');
+    }
+
+    function getStageName(stageId) {
+        stageId = String(stageId || '');
+
+        if (!race.tourism_stages) {
+            return '';
+        }
+
+        for (var i = 0; i < race.tourism_stages.length; i++) {
+            var stage = race.tourism_stages[i];
+            if (String(stage.id || '') === stageId) {
+                var orderNum = stage.order_num ? String(stage.order_num) + '. ' : '';
+                return orderNum + (stage.name || 'Этап');
+            }
+        }
+
+        return 'Этап';
+    }
+
+    function getStageDecisionText(decision) {
+        var parts = [];
+
+        if (Number(decision.penalty_time_sec || 0) > 0) {
+            parts.push('штраф ' + toHHMMSSFromSec(decision.penalty_time_sec));
+        }
+
+        if (Number(decision.penalty_points || 0) > 0) {
+            parts.push('штраф ' + decision.penalty_points + ' б.');
+        }
+
+        if (Number(decision.cutoff_time_sec || 0) > 0) {
+            parts.push('отсечка ' + toHHMMSSFromSec(decision.cutoff_time_sec));
+        }
+
+        if (decision.is_stage_dsq === true || decision.is_stage_dsq === 1 || decision.is_stage_dsq === '1') {
+            parts.push('снят с этапа');
+        }
+
+        if (decision.comment) {
+            parts.push(decision.comment);
+        }
+
+        return parts.join(', ');
+    }
+
+    function getStagePenaltiesText(result) {
+        if (!race.tourism_stage_decisions || !race.tourism_stage_decisions.length) {
+            return '';
+        }
+
+        var personId = getResultPersonId(result);
+        if (!personId) {
+            return '';
+        }
+
+        var parts = [];
+
+        for (var i = 0; i < race.tourism_stage_decisions.length; i++) {
+            var decision = race.tourism_stage_decisions[i];
+
+            if (String(decision.person_id || '') !== personId) {
+                continue;
+            }
+
+            var decisionText = getStageDecisionText(decision);
+            if (!decisionText) {
+                continue;
+            }
+
+            parts.push(getStageName(decision.stage_id) + ': ' + decisionText);
+        }
+
+        return parts.join('; ');
     }
 
     function toHHMMSSFromMsec(msec) {
@@ -78,6 +194,70 @@
         }
 
         return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+    }
+
+    function getTourismStagesSorted() {
+        var stages = (race.tourism_stages || []).slice();
+
+        stages.sort(function (a, b) {
+            var aOrder = Number(a.order_num || 0);
+            var bOrder = Number(b.order_num || 0);
+
+            if (aOrder !== bOrder) {
+                return aOrder - bOrder;
+            }
+
+            return String(a.name || '').localeCompare(String(b.name || ''));
+        });
+
+        return stages;
+    }
+
+    function getStageTitle(stage) {
+        if (!stage) {
+            return 'Этап';
+        }
+
+        var orderNum = Number(stage.order_num || 0);
+        var name = stage.name || 'Этап';
+
+        if (orderNum > 0) {
+            return orderNum + '. ' + name;
+        }
+
+        return name;
+    }
+
+    function getStageDecisionTextForResultAndStage(result, stage) {
+        if (!race.tourism_stage_decisions || !race.tourism_stage_decisions.length) {
+            return '';
+        }
+
+        var personId = getResultPersonId(result);
+        if (!personId || !stage || !stage.id) {
+            return '';
+        }
+
+        var parts = [];
+
+        for (var i = 0; i < race.tourism_stage_decisions.length; i++) {
+            var decision = race.tourism_stage_decisions[i];
+
+            if (String(decision.person_id || '') !== String(personId)) {
+                continue;
+            }
+
+            if (String(decision.stage_id || '') !== String(stage.id)) {
+                continue;
+            }
+
+            var decisionText = getStageDecisionText(decision);
+            if (decisionText) {
+                parts.push(decisionText);
+            }
+        }
+
+        return parts.join('; ');
     }
 
     function getStatusText(status) {
@@ -290,7 +470,18 @@
             'Старт',
             'Финиш',
             'Время',
-            'Отсечка',
+            'Отсечка'
+        ].forEach(function (title) {
+            headerRow.appendChild(createHeaderCell(title));
+        });
+
+        getTourismStagesSorted().forEach(function (stage) {
+            var th = createHeaderCell(getStageTitle(stage));
+            th.className = 'stage-penalties-col';
+            headerRow.appendChild(th);
+        });
+
+        [
             'Штраф',
             'Итог',
             'Статус',
@@ -317,6 +508,15 @@
             tr.appendChild(createCell(result.finish_time ? toHHMMSSFromMsec(result.finish_time) : ''));
             tr.appendChild(createCell(result.result_msec ? toHHMMSSFromMsec(result.result_msec) : ''));
             tr.appendChild(createCell(getCutoffText(result)));
+
+            getTourismStagesSorted().forEach(function (stage) {
+                var stagePenaltyCell = createCell(
+                    getStageDecisionTextForResultAndStage(result, stage)
+                );
+                stagePenaltyCell.className = 'stage-penalties-col';
+                tr.appendChild(stagePenaltyCell);
+            });
+
             tr.appendChild(createCell(getPenaltyText(result)));
             tr.appendChild(createCell(getResultText(result)));
             tr.appendChild(createCell(getStatusText(result.status)));
@@ -352,6 +552,17 @@
     }
 
     renderTourismResults();
+
+    var showStagePenaltiesCheckbox = document.getElementById('show-stage-penalties');
+    if (showStagePenaltiesCheckbox) {
+        showStagePenaltiesCheckbox.addEventListener('change', function () {
+            if (showStagePenaltiesCheckbox.checked) {
+                document.body.classList.remove('hide-stage-penalties');
+            } else {
+                document.body.classList.add('hide-stage-penalties');
+            }
+        });
+    }
 </script>
 {% endraw %}
 {% endblock %}

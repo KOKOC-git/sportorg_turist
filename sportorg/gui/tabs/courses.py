@@ -30,8 +30,31 @@ class Widget(QtWidgets.QWidget):
         obj = race()
         ensure_tourism_defaults(obj)
         repair_tourism_courses_from_stages(obj)
-        repair_tourism_courses_from_stages(obj)
-        return getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
+
+        competition_type = getattr(
+            obj,
+            'competition_type',
+            CompetitionType.INDIVIDUAL.value,
+        )
+
+        data_competition_type = getattr(
+            getattr(obj, 'data', None),
+            'competition_type',
+            '',
+        )
+
+        tourism_types = {
+            CompetitionType.TOURISM.value,
+            'tourism',
+            'tourism_individual',
+            'tourism_pair',
+            'tourism_group',
+        }
+
+        return (
+            competition_type in tourism_types
+            or data_competition_type in tourism_types
+        )
 
     def _open_tourism_stages(self):
         dialog = TourismStagesDialog(GlobalAccess().get_main_window())
