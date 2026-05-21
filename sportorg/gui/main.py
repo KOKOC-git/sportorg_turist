@@ -1,5 +1,6 @@
 import sys
 from multiprocessing import freeze_support
+from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
 
@@ -16,6 +17,20 @@ from sportorg.models.constant import (
     StatusComments,
 )
 from sportorg.services.tourism_result_calculation import patch_result_calculation
+
+
+def read_optional_lines(file_path, encoding='utf-8'):
+    path = Path(file_path)
+
+    if not path.exists():
+        return []
+
+    try:
+        with open(path, encoding=encoding) as f:
+            return f.readlines()
+    except Exception as e:
+        print(str(e))
+        return []
 
 
 class Application(metaclass=Singleton):
@@ -43,42 +58,31 @@ class Application(metaclass=Singleton):
 
     @staticmethod
     def set_status_comments():
-        try:
-            with open(config.STATUS_COMMENTS_FILE, encoding='utf-8') as f:
-                content = f.readlines()
-                StatusComments().set([x.strip() for x in content])
-            with open(config.STATUS_DEFAULT_COMMENTS_FILE, encoding='utf-8') as f:
-                content = f.readlines()
-                StatusComments().set_default_statuses(content)
-        except Exception as e:
-            print(str(e))
+        content = read_optional_lines(config.STATUS_COMMENTS_FILE)
+        if content:
+            StatusComments().set([x.strip() for x in content])
+
+        default_content = read_optional_lines(config.STATUS_DEFAULT_COMMENTS_FILE)
+        if default_content:
+            StatusComments().set_default_statuses(default_content)
 
     @staticmethod
     def set_names():
-        try:
-            with open(config.NAMES_FILE, encoding='utf-8') as f:
-                content = f.readlines()
-                PersonNames().set([x.strip() for x in content])
-        except Exception as e:
-            print(str(e))
+        content = read_optional_lines(config.NAMES_FILE)
+        if content:
+            PersonNames().set([x.strip() for x in content])
 
     @staticmethod
     def set_regions():
-        try:
-            with open(config.REGIONS_FILE, encoding='utf-8') as f:
-                content = f.readlines()
-                Regions().set([x.strip() for x in content])
-        except Exception as e:
-            print(str(e))
+        content = read_optional_lines(config.REGIONS_FILE)
+        if content:
+            Regions().set([x.strip() for x in content])
 
     @staticmethod
     def set_ranking():
-        try:
-            with open(config.RANKING_SCORE_FILE, encoding='utf-8') as f:
-                content = f.readlines()
-                RankingTable().set([x.strip().split(';') for x in content])
-        except Exception as e:
-            print(str(e))
+        content = read_optional_lines(config.RANKING_SCORE_FILE)
+        if content:
+            RankingTable().set([x.strip().split(';') for x in content])
 
     @staticmethod
     def set_rent_cards():

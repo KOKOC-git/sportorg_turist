@@ -49,8 +49,32 @@ def load(file):
     )  # force user to activate Live broadcast manually (not to lose live results)
 
 
+def _read_json_bytes_with_fallback(file):
+    try:
+        content = file.read()
+    except UnicodeDecodeError:
+        # Файлы из старых/Windows-версий SportOrg могут быть сохранены в cp1251.
+        # Обычный file.read() падает, поэтому перечитываем файл как байты.
+        with open(file.name, 'rb') as binary_file:
+            raw = binary_file.read()
+
+        for encoding in ('utf-8-sig', 'utf-8', 'cp1251', 'windows-1251'):
+            try:
+                return raw.decode(encoding).encode('utf-8')
+            except UnicodeDecodeError:
+                continue
+
+        # Последний вариант: открыть с заменой битых символов, чтобы не ронять импорт.
+        return raw.decode('cp1251', errors='replace').encode('utf-8')
+
+    if isinstance(content, str):
+        return content.encode('utf-8')
+
+    return content
+
+
 def get_races_from_file(file):
-    data = orjson.loads(file.read())
+    data = orjson.loads(_read_json_bytes_with_fallback(file))
     if 'races' not in data:
         data = {
             'races': [data] if not isinstance(data, list) else data,
