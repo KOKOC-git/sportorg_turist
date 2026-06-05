@@ -142,3 +142,6 @@ cython_debug/
 
 data
 !tests/data
+
+# macOS
+.DS_Store

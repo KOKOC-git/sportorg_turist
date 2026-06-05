@@ -5,7 +5,7 @@ from os import remove
 from typing import Any, Dict, Type
 
 from PySide6 import QtCore
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox, QInputDialog
 
 from sportorg import config
 from sportorg.common.otime import OTime
@@ -63,6 +63,8 @@ from sportorg.services.tourism_result_calculation import TourismResultCalculator
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.result.result_checker import ResultChecker
 from sportorg.services.manual_finish_queue import add_pending_finish
+from sportorg.modules.photo_finish import photo_finish_service
+from serial.tools import list_ports
 from sportorg.models.start.start_preparation import (
     copy_bib_to_card_number,
     copy_card_number_to_bib,
@@ -638,6 +640,210 @@ class ManualFinishAction(Action, metaclass=ActionFactory):
 
         logging.info(translate('Manual finish'))
         self.app.refresh()
+
+
+
+class PhotoFinishQtBridge(QtCore.QObject):
+    finish = QtCore.Signal(object)
+    error = QtCore.Signal(str)
+    status = QtCore.Signal(str)
+
+def _photo_finish_event_otime(event):
+    timestamp = getattr(event, 'timestamp', None)
+    if timestamp is None:
+        return OTime.now()
+
+    msec = (
+        ((timestamp.hour * 60 + timestamp.minute) * 60 + timestamp.second) * 1000
+        + int(timestamp.microsecond / 1000)
+    )
+    return OTime(msec=msec)
+
+
+def _get_photo_finish_bridge(app):
+    bridge = getattr(app, 'photo_finish_qt_bridge', None)
+    if bridge is None:
+        bridge = PhotoFinishQtBridge(app)
+        app.photo_finish_qt_bridge = bridge
+    return bridge
+
+
+def _get_photo_finish_port(app):
+    saved_port = race().get_setting('photo_finish_port', '')
+
+    port_items = []
+    for port in list_ports.comports():
+        label = port.device
+        details = []
+        if port.description:
+            details.append(port.description)
+        if port.manufacturer:
+            details.append(port.manufacturer)
+        if details:
+            label += ' — ' + ' / '.join(details)
+        port_items.append((label, port.device))
+
+    if saved_port and saved_port not in [device for _, device in port_items]:
+        port_items.insert(
+            0,
+            (
+                saved_port + ' — ' + translate('saved port'),
+                saved_port,
+            ),
+        )
+
+    port_items.append((translate('Enter manually...'), '__manual__'))
+
+    labels = [label for label, _ in port_items]
+    current_index = 0
+    if saved_port:
+        for index, (_, device) in enumerate(port_items):
+            if device == saved_port:
+                current_index = index
+                break
+
+    selected_label, ok = QInputDialog.getItem(
+        app,
+        translate('Photo finish'),
+        translate('Photo finish port'),
+        labels,
+        current_index,
+        False,
+    )
+
+    if not ok or not selected_label:
+        return ''
+
+    selected_device = ''
+    for label, device in port_items:
+        if label == selected_label:
+            selected_device = device
+            break
+
+    if selected_device == '__manual__':
+        selected_device, ok = QInputDialog.getText(
+            app,
+            translate('Photo finish'),
+            translate('Photo finish port'),
+            text=saved_port,
+        )
+        selected_device = selected_device.strip()
+        if not ok or not selected_device:
+            return ''
+
+    race().set_setting('photo_finish_port', selected_device)
+    return selected_device
+
+
+def _show_manual_finish_queue(app):
+    dialog = getattr(app, 'manual_finish_queue_dialog', None)
+    if dialog is None:
+        dialog = ManualFinishQueueDialog(app=app)
+        app.manual_finish_queue_dialog = dialog
+
+    dialog.refresh_data()
+    dialog.show()
+    dialog.raise_()
+    dialog.activateWindow()
+    dialog.focus_input()
+    return dialog
+
+
+class PhotoFinishStartAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        bridge = _get_photo_finish_bridge(self.app)
+
+        try:
+            bridge.finish.disconnect()
+        except Exception:
+            pass
+        try:
+            bridge.error.disconnect()
+        except Exception:
+            pass
+        try:
+            bridge.status.disconnect()
+        except Exception:
+            pass
+
+        def handle_finish(event):
+            add_pending_finish(race(), _photo_finish_event_otime(event))
+            _show_manual_finish_queue(self.app)
+            logging.info('Photo finish trigger: %s raw=%s', event.timestamp, event.raw)
+            self.app.refresh()
+
+        def handle_error(message):
+            logging.error('Photo finish error: %s', message)
+            QMessageBox.warning(self.app, translate('Photo finish'), str(message))
+
+        def handle_status(message):
+            logging.info('Photo finish: %s', message)
+
+        bridge.finish.connect(handle_finish)
+        bridge.error.connect(handle_error)
+        bridge.status.connect(handle_status)
+
+        def on_finish(event):
+            bridge.finish.emit(event)
+
+        def on_error(message):
+            bridge.error.emit(str(message))
+
+        def on_status(message):
+            bridge.status.emit(str(message))
+
+        baudrate = race().get_setting('photo_finish_baudrate', 9600)
+
+        # 100 мс — минимальный практичный антидребезг для точности 0,1 сек.
+        debounce_ms = race().get_setting('photo_finish_debounce_ms', 100)
+
+        # Для ФФ054 через MOXA: любой входящий байт = финиш.
+        trigger_text = race().get_setting('photo_finish_trigger_text', '*')
+
+        port = _get_photo_finish_port(self.app)
+        if not port:
+            return
+
+        photo_finish_service.stop()
+        photo_finish_service.set_finish_callback(on_finish)
+        photo_finish_service.set_error_callback(on_error)
+        photo_finish_service.set_status_callback(on_status)
+        photo_finish_service.configure(
+            enabled=True,
+            port=port,
+            baudrate=int(baudrate),
+            debounce_ms=int(debounce_ms),
+            trigger_text=str(trigger_text),
+        )
+
+        if photo_finish_service.start():
+            QMessageBox.information(
+                self.app,
+                translate('Photo finish'),
+                translate('Photo finish started'),
+            )
+
+
+class PhotoFinishStopAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        photo_finish_service.stop()
+        QMessageBox.information(
+            self.app,
+            translate('Photo finish'),
+            translate('Photo finish stopped'),
+        )
+
+
+class PhotoFinishTestAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        def on_finish(event):
+            add_pending_finish(race())
+            _show_manual_finish_queue(self.app)
+            logging.info('Photo finish test trigger: %s', event.timestamp)
+            self.app.refresh()
+
+        photo_finish_service.set_finish_callback(on_finish)
+        photo_finish_service.test_finish()
 
 
 class SPORTidentReadoutAction(Action, metaclass=ActionFactory):

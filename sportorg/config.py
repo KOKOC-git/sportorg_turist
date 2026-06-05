@@ -22,7 +22,19 @@ def is_executable() -> bool:
 
 def module_path() -> str:
     if is_executable():
-        return os.path.dirname(sys.executable)
+        exe_dir = os.path.dirname(sys.executable)
+
+        # PyInstaller one-folder build stores bundled resources in _internal.
+        internal_dir = os.path.join(exe_dir, '_internal')
+        if os.path.exists(internal_dir):
+            return internal_dir
+
+        # PyInstaller one-file fallback.
+        meipass = getattr(sys, '_MEIPASS', None)
+        if meipass:
+            return meipass
+
+        return exe_dir
 
     return os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
