@@ -642,6 +642,21 @@ class ManualFinishAction(Action, metaclass=ActionFactory):
         self.app.refresh()
 
 
+
+class PhotoFinishQtBridge(QtCore.QObject):
+    finish = QtCore.Signal(object)
+    error = QtCore.Signal(str)
+    status = QtCore.Signal(str)
+
+
+def _get_photo_finish_bridge(app):
+    bridge = getattr(app, 'photo_finish_qt_bridge', None)
+    if bridge is None:
+        bridge = PhotoFinishQtBridge(app)
+        app.photo_finish_qt_bridge = bridge
+    return bridge
+
+
 def _get_photo_finish_port(app):
     saved_port = race().get_setting('photo_finish_port', '')
 
@@ -725,23 +740,50 @@ def _show_manual_finish_queue(app):
 
 class PhotoFinishStartAction(Action, metaclass=ActionFactory):
     def execute(self):
-        def on_finish(event):
+        bridge = _get_photo_finish_bridge(self.app)
+
+        try:
+            bridge.finish.disconnect()
+        except Exception:
+            pass
+        try:
+            bridge.error.disconnect()
+        except Exception:
+            pass
+        try:
+            bridge.status.disconnect()
+        except Exception:
+            pass
+
+        def handle_finish(event):
             add_pending_finish(race())
             _show_manual_finish_queue(self.app)
-            logging.info('Photo finish trigger: %s', event.timestamp)
+            logging.info('Photo finish trigger: %s raw=%s', event.timestamp, event.raw)
             self.app.refresh()
 
-        def on_error(message):
+        def handle_error(message):
             logging.error('Photo finish error: %s', message)
             QMessageBox.warning(self.app, translate('Photo finish'), str(message))
 
-        def on_status(message):
+        def handle_status(message):
             logging.info('Photo finish: %s', message)
 
-        port = race().get_setting('photo_finish_port', '')
+        bridge.finish.connect(handle_finish)
+        bridge.error.connect(handle_error)
+        bridge.status.connect(handle_status)
+
+        def on_finish(event):
+            bridge.finish.emit(event)
+
+        def on_error(message):
+            bridge.error.emit(str(message))
+
+        def on_status(message):
+            bridge.status.emit(str(message))
+
         baudrate = race().get_setting('photo_finish_baudrate', 9600)
         debounce_ms = race().get_setting('photo_finish_debounce_ms', 1000)
-        trigger_text = race().get_setting('photo_finish_trigger_text', 'FINISH')
+        trigger_text = race().get_setting('photo_finish_trigger_text', '*')
 
         port = _get_photo_finish_port(self.app)
         if not port:

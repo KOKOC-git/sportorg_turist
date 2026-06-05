@@ -14,9 +14,12 @@ class PhotoFinishDevice:
     """
     Низкоуровневое устройство фотоствора.
 
-    Ожидает строку trigger_text в COM-порту.
-    Например, Arduino/USB-COM адаптер отправляет:
-        FINISH
+    Поддерживает два режима:
+    1. trigger_text = "FINISH" — ждёт текстовую строку FINISH.
+    2. trigger_text = "*" — любое поступление байтов в COM-порт считается финишем.
+
+    Для MOXA UPort 1110 + ФФ054 сейчас нужен режим "*",
+    потому что при срабатывании фотоствор присылает байты 00 00.
     """
 
     def __init__(self, config, on_finish=None, on_error=None, on_status=None):
@@ -70,8 +73,21 @@ class PhotoFinishDevice:
             self._serial = serial.Serial(
                 port=self.config.port,
                 baudrate=self.config.baudrate,
-                timeout=0.2,
+                timeout=0.05,
             )
+
+            # Для RS-232 адаптеров иногда полезно явно поднять линии.
+            try:
+                self._serial.dtr = True
+                self._serial.rts = True
+            except Exception:
+                pass
+
+            try:
+                self._serial.reset_input_buffer()
+            except Exception:
+                pass
+
         except Exception as exc:
             self._emit_error(f"Не удалось открыть порт фотоствора: {exc}")
             self._running = False
@@ -79,18 +95,28 @@ class PhotoFinishDevice:
 
         while self._running:
             try:
-                raw = self._serial.readline()
+                raw = self._serial.read(1024)
 
                 if not raw:
                     continue
 
-                text = raw.decode("utf-8", errors="ignore").strip()
+                trigger_text = str(getattr(self.config, "trigger_text", "FINISH")).strip()
 
-                if not text:
+                raw_hex = raw.hex(" ")
+                raw_text = raw.decode("utf-8", errors="ignore").strip()
+
+                # Режим для ФФ054 через MOXA:
+                # любые пришедшие байты считаем финишем.
+                if trigger_text == "*":
+                    self._handle_trigger(raw=raw_text if raw_text else raw_hex)
                     continue
 
-                if text == self.config.trigger_text:
-                    self._handle_trigger(raw=text)
+                # Старый режим: ждём конкретный текст, например FINISH.
+                if not raw_text:
+                    continue
+
+                if raw_text == trigger_text:
+                    self._handle_trigger(raw=raw_text)
 
             except Exception as exc:
                 self._emit_error(f"Ошибка чтения фотоствора: {exc}")
