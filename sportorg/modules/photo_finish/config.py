@@ -15,5 +15,5 @@ class PhotoFinishConfig:
     enabled: bool = False
     port: str = ""
     baudrate: int = 9600
-    debounce_ms: int = 1000
+    debounce_ms: int = 100
     trigger_text: str = "FINISH"

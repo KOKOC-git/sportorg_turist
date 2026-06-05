@@ -73,7 +73,7 @@ class PhotoFinishDevice:
             self._serial = serial.Serial(
                 port=self.config.port,
                 baudrate=self.config.baudrate,
-                timeout=0.05,
+                timeout=0.01,
             )
 
             # Для RS-232 адаптеров иногда полезно явно поднять линии.
@@ -95,7 +95,15 @@ class PhotoFinishDevice:
 
         while self._running:
             try:
-                raw = self._serial.read(1024)
+                raw = self._serial.read(1)
+
+                if raw:
+                    try:
+                        waiting = self._serial.in_waiting
+                    except Exception:
+                        waiting = 0
+                    if waiting:
+                        raw += self._serial.read(waiting)
 
                 if not raw:
                     continue

@@ -648,6 +648,17 @@ class PhotoFinishQtBridge(QtCore.QObject):
     error = QtCore.Signal(str)
     status = QtCore.Signal(str)
 
+def _photo_finish_event_otime(event):
+    timestamp = getattr(event, 'timestamp', None)
+    if timestamp is None:
+        return OTime.now()
+
+    msec = (
+        ((timestamp.hour * 60 + timestamp.minute) * 60 + timestamp.second) * 1000
+        + int(timestamp.microsecond / 1000)
+    )
+    return OTime(msec=msec)
+
 
 def _get_photo_finish_bridge(app):
     bridge = getattr(app, 'photo_finish_qt_bridge', None)
@@ -756,7 +767,7 @@ class PhotoFinishStartAction(Action, metaclass=ActionFactory):
             pass
 
         def handle_finish(event):
-            add_pending_finish(race())
+            add_pending_finish(race(), _photo_finish_event_otime(event))
             _show_manual_finish_queue(self.app)
             logging.info('Photo finish trigger: %s raw=%s', event.timestamp, event.raw)
             self.app.refresh()
@@ -782,7 +793,11 @@ class PhotoFinishStartAction(Action, metaclass=ActionFactory):
             bridge.status.emit(str(message))
 
         baudrate = race().get_setting('photo_finish_baudrate', 9600)
-        debounce_ms = race().get_setting('photo_finish_debounce_ms', 1000)
+
+        # 100 мс — минимальный практичный антидребезг для точности 0,1 сек.
+        debounce_ms = race().get_setting('photo_finish_debounce_ms', 100)
+
+        # Для ФФ054 через MOXA: любой входящий байт = финиш.
         trigger_text = race().get_setting('photo_finish_trigger_text', '*')
 
         port = _get_photo_finish_port(self.app)
