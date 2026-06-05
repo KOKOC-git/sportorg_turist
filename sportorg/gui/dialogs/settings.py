@@ -82,6 +82,25 @@ class MainTab(Tab):
 
     def save(self):
         Config().configuration.set('current_locale', self.item_lang.currentText())
+
+        # Keep old locale storage in sync because sportorg.language reads config.ini
+        # during application startup.
+        try:
+            import configparser
+            from sportorg import config as sportorg_config
+
+            conf = configparser.ConfigParser()
+            conf.read(sportorg_config.CONFIG_INI)
+
+            if not conf.has_section('locale'):
+                conf.add_section('locale')
+
+            conf.set('locale', 'current', self.item_lang.currentText())
+
+            with open(sportorg_config.CONFIG_INI, 'w', encoding='utf-8') as config_file:
+                conf.write(config_file)
+        except Exception:
+            pass
         Config().configuration.set('autosave_interval', self.item_auto_save.value())
         Config().configuration.set(
             'open_recent_file', self.item_open_recent_file.isChecked()
