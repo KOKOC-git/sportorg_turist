@@ -63,6 +63,7 @@ from sportorg.services.tourism_result_calculation import TourismResultCalculator
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.result.result_checker import ResultChecker
 from sportorg.services.manual_finish_queue import add_pending_finish
+from sportorg.modules.photo_finish import photo_finish_service
 from sportorg.models.start.start_preparation import (
     copy_bib_to_card_number,
     copy_card_number_to_bib,
@@ -638,6 +639,90 @@ class ManualFinishAction(Action, metaclass=ActionFactory):
 
         logging.info(translate('Manual finish'))
         self.app.refresh()
+
+
+def _show_manual_finish_queue(app):
+    dialog = getattr(app, 'manual_finish_queue_dialog', None)
+    if dialog is None:
+        dialog = ManualFinishQueueDialog(app=app)
+        app.manual_finish_queue_dialog = dialog
+
+    dialog.refresh_data()
+    dialog.show()
+    dialog.raise_()
+    dialog.activateWindow()
+    dialog.focus_input()
+    return dialog
+
+
+class PhotoFinishStartAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        def on_finish(event):
+            add_pending_finish(race())
+            _show_manual_finish_queue(self.app)
+            logging.info('Photo finish trigger: %s', event.timestamp)
+            self.app.refresh()
+
+        def on_error(message):
+            logging.error('Photo finish error: %s', message)
+            QMessageBox.warning(self.app, translate('Photo finish'), str(message))
+
+        def on_status(message):
+            logging.info('Photo finish: %s', message)
+
+        port = race().get_setting('photo_finish_port', '')
+        baudrate = race().get_setting('photo_finish_baudrate', 9600)
+        debounce_ms = race().get_setting('photo_finish_debounce_ms', 1000)
+        trigger_text = race().get_setting('photo_finish_trigger_text', 'FINISH')
+
+        if not port:
+            QMessageBox.warning(
+                self.app,
+                translate('Photo finish'),
+                translate('Photo finish port is not configured'),
+            )
+            return
+
+        photo_finish_service.stop()
+        photo_finish_service.set_finish_callback(on_finish)
+        photo_finish_service.set_error_callback(on_error)
+        photo_finish_service.set_status_callback(on_status)
+        photo_finish_service.configure(
+            enabled=True,
+            port=port,
+            baudrate=int(baudrate),
+            debounce_ms=int(debounce_ms),
+            trigger_text=str(trigger_text),
+        )
+
+        if photo_finish_service.start():
+            QMessageBox.information(
+                self.app,
+                translate('Photo finish'),
+                translate('Photo finish started'),
+            )
+
+
+class PhotoFinishStopAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        photo_finish_service.stop()
+        QMessageBox.information(
+            self.app,
+            translate('Photo finish'),
+            translate('Photo finish stopped'),
+        )
+
+
+class PhotoFinishTestAction(Action, metaclass=ActionFactory):
+    def execute(self):
+        def on_finish(event):
+            add_pending_finish(race())
+            _show_manual_finish_queue(self.app)
+            logging.info('Photo finish test trigger: %s', event.timestamp)
+            self.app.refresh()
+
+        photo_finish_service.set_finish_callback(on_finish)
+        photo_finish_service.test_finish()
 
 
 class SPORTidentReadoutAction(Action, metaclass=ActionFactory):

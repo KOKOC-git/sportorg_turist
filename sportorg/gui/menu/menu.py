@@ -284,6 +284,18 @@ def _default_menu_list():
                     'action': 'ManualFinishAction',
                 },
                 {
+                    'title': translate('Photo finish start'),
+                    'action': 'PhotoFinishStartAction',
+                },
+                {
+                    'title': translate('Photo finish stop'),
+                    'action': 'PhotoFinishStopAction',
+                },
+                {
+                    'title': translate('Photo finish test'),
+                    'action': 'PhotoFinishTestAction',
+                },
+                {
                     'title': translate('Add SPORTident result'),
                     'action': 'AddSPORTidentResultAction',
                 },
