@@ -5,7 +5,7 @@ from os import remove
 from typing import Any, Dict, Type
 
 from PySide6 import QtCore
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox, QInputDialog
 
 from sportorg import config
 from sportorg.common.otime import OTime
@@ -64,6 +64,7 @@ from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.result.result_checker import ResultChecker
 from sportorg.services.manual_finish_queue import add_pending_finish
 from sportorg.modules.photo_finish import photo_finish_service
+from serial.tools import list_ports
 from sportorg.models.start.start_preparation import (
     copy_bib_to_card_number,
     copy_card_number_to_bib,
@@ -641,6 +642,73 @@ class ManualFinishAction(Action, metaclass=ActionFactory):
         self.app.refresh()
 
 
+def _get_photo_finish_port(app):
+    saved_port = race().get_setting('photo_finish_port', '')
+
+    port_items = []
+    for port in list_ports.comports():
+        label = port.device
+        details = []
+        if port.description:
+            details.append(port.description)
+        if port.manufacturer:
+            details.append(port.manufacturer)
+        if details:
+            label += ' — ' + ' / '.join(details)
+        port_items.append((label, port.device))
+
+    if saved_port and saved_port not in [device for _, device in port_items]:
+        port_items.insert(
+            0,
+            (
+                saved_port + ' — ' + translate('saved port'),
+                saved_port,
+            ),
+        )
+
+    port_items.append((translate('Enter manually...'), '__manual__'))
+
+    labels = [label for label, _ in port_items]
+    current_index = 0
+    if saved_port:
+        for index, (_, device) in enumerate(port_items):
+            if device == saved_port:
+                current_index = index
+                break
+
+    selected_label, ok = QInputDialog.getItem(
+        app,
+        translate('Photo finish'),
+        translate('Photo finish port'),
+        labels,
+        current_index,
+        False,
+    )
+
+    if not ok or not selected_label:
+        return ''
+
+    selected_device = ''
+    for label, device in port_items:
+        if label == selected_label:
+            selected_device = device
+            break
+
+    if selected_device == '__manual__':
+        selected_device, ok = QInputDialog.getText(
+            app,
+            translate('Photo finish'),
+            translate('Photo finish port'),
+            text=saved_port,
+        )
+        selected_device = selected_device.strip()
+        if not ok or not selected_device:
+            return ''
+
+    race().set_setting('photo_finish_port', selected_device)
+    return selected_device
+
+
 def _show_manual_finish_queue(app):
     dialog = getattr(app, 'manual_finish_queue_dialog', None)
     if dialog is None:
@@ -675,12 +743,8 @@ class PhotoFinishStartAction(Action, metaclass=ActionFactory):
         debounce_ms = race().get_setting('photo_finish_debounce_ms', 1000)
         trigger_text = race().get_setting('photo_finish_trigger_text', 'FINISH')
 
+        port = _get_photo_finish_port(self.app)
         if not port:
-            QMessageBox.warning(
-                self.app,
-                translate('Photo finish'),
-                translate('Photo finish port is not configured'),
-            )
             return
 
         photo_finish_service.stop()
