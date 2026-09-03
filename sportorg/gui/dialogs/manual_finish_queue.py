@@ -36,7 +36,7 @@ class ManualFinishQueueDialog(QDialog):
         super().__init__(parent)
         self.app = app
         self.setWindowTitle(translate('Manual finish queue'))
-        self.resize(520, 360)
+        self.resize(760, 360)
         self.setModal(False)
 
         self.layout = QVBoxLayout(self)
@@ -45,11 +45,13 @@ class ManualFinishQueueDialog(QDialog):
         self.layout.addWidget(self.label)
 
         self.table = QTableWidget(self)
-        self.table.setColumnCount(4)
+        self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(
             [
                 translate('Queue'),
                 translate('Finish time'),
+                translate('Source'),
+                translate('Raw signal'),
                 translate('Bib'),
                 translate('Status'),
             ]
@@ -104,8 +106,10 @@ class ManualFinishQueueDialog(QDialog):
 
             self.table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
             self.table.setItem(row, 1, QTableWidgetItem(time_text))
-            self.table.setItem(row, 2, QTableWidgetItem(str(item.get('bib', ''))))
-            self.table.setItem(row, 3, QTableWidgetItem(str(item.get('status', 'pending'))))
+            self.table.setItem(row, 2, QTableWidgetItem(str(item.get('source', 'manual'))))
+            self.table.setItem(row, 3, QTableWidgetItem(str(item.get('raw', ''))))
+            self.table.setItem(row, 4, QTableWidgetItem(str(item.get('bib', ''))))
+            self.table.setItem(row, 5, QTableWidgetItem(str(item.get('status', 'pending'))))
             self.table.item(row, 0).setData(Qt.UserRole, item.get('id'))
 
         if items:

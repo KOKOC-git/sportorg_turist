@@ -298,18 +298,16 @@ def _build_team_unit_standings(obj):
 
     for unit in units:
         scores = int(getattr(unit, 'tourism_scores', 0) or 0)
-        if scores <= 0:
-            continue
-
         source_group_name = unit.group_name or 'Без группы'
         combined_group_name = _combined_age_group_name(source_group_name)
         team_name = unit.team_name or 'Без коллектива'
         is_female = _is_female_group_name(source_group_name, female_prefix)
 
         place = getattr(unit, 'place', '')
+        place_text = f'{place} место' if place else 'без места'
         detail = (
             f'№{unit.number} [{source_group_name}]: '
-            f'{place} место, {scores} очк. ({unit.members_text})'
+            f'{place_text}, {scores} очк. ({unit.members_text})'
         )
 
         grouped_team_items.setdefault(combined_group_name, {})

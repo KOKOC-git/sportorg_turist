@@ -5,7 +5,11 @@ import logging
 from collections import defaultdict
 
 from sportorg.common.otime import OTime
-from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults
+from sportorg.models.tourism import (
+    CompetitionType,
+    TOURISM_COMPETITION_TYPES,
+    ensure_tourism_defaults,
+)
 
 
 def _otime_to_msec(value) -> int:
@@ -36,16 +40,13 @@ class TourismResultCalculator:
     def apply(r):
         ensure_tourism_defaults(r)
 
-        logging.warning(
+        logging.debug(
             "TOURISM CALC START: competition_type=%s, results=%s, decisions=%s",
             getattr(r, "competition_type", None),
             len(getattr(r, "results", [])),
             len(getattr(r, "tourism_stage_decisions", [])),
         )
 
-        # Пока отдельная настройка не вынесена в интерфейс,
-        # используем безопасное значение по умолчанию:
-        # 1 штрафной балл = 30 секунд.
         penalty_point_sec = int(getattr(r, "tourism_penalty_point_sec", 30) or 30)
 
         for result in r.results:
@@ -56,7 +57,10 @@ class TourismResultCalculator:
             # Они не должны использоваться как база, потому что при сохранении файла
             # туда уже попадает результат предыдущего туристского пересчёта.
             # Иначе после открытия файла штрафы/отсечки начинают прибавляться повторно.
-            if getattr(r, "competition_type", CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value:
+            if (
+                getattr(r, "competition_type", CompetitionType.INDIVIDUAL.value)
+                in TOURISM_COMPETITION_TYPES
+            ):
                 result._tourism_base_penalty_time = OTime()
                 result._tourism_base_credit_time = OTime()
             else:
@@ -83,22 +87,8 @@ class TourismResultCalculator:
             result.rogaine_score = result._tourism_base_rogaine_score
             result.scores_ardf = result._tourism_base_scores_ardf
 
-        if r.competition_type != CompetitionType.TOURISM.value:
+        if r.competition_type not in TOURISM_COMPETITION_TYPES:
             return
-
-        # В режиме Туризм поля penalty_time и credit_time являются РАСЧЁТНЫМИ.
-        # Их нельзя использовать как базовые значения, потому что после сохранения
-        # файла они уже могут содержать ранее применённые туристские штрафы/отсечки.
-        # Иначе при каждом пересчёте штраф и отсечка удваиваются.
-        for result in r.results:
-            if not hasattr(result, "tourism_penalty_time"):
-                continue
-
-            result._tourism_base_penalty_time = OTime()
-            result._tourism_base_credit_time = OTime()
-
-            result.penalty_time = OTime()
-            result.credit_time = OTime()
 
         result_map = {}
         for result in r.results:
@@ -123,25 +113,15 @@ class TourismResultCalculator:
         # Также очищаем список в памяти, чтобы при следующем сохранении файл не хранил дубли.
         r.tourism_stage_decisions = list(unique_decisions.values())
 
-        # Защита от дублей: по одному участнику и одному этапу
-        # должно учитываться только одно последнее решение.
-        # Иначе штрафы/отсечки начинают суммироваться повторно.
-        unique_decisions = {}
-        for decision in getattr(r, "tourism_stage_decisions", []):
-            key = (str(decision.person_id), str(decision.stage_id))
-            unique_decisions[key] = decision
-
-        # Дополнительно очищаем список решений в памяти, чтобы после сохранения
-        # старые дубли не возвращались снова.
-        if len(unique_decisions) != len(getattr(r, "tourism_stage_decisions", [])):
-            r.tourism_stage_decisions = list(unique_decisions.values())
-
         for decision in unique_decisions.values():
             agg = aggregates[str(decision.person_id)]
             agg["cutoff_time_sec"] += int(decision.cutoff_time_sec)
 
             if decision.is_stage_dsq:
                 agg["stage_dsq_count"] += 1
+                continue
+
+            if getattr(r, 'tourism_judging_mode', 'penalty') == 'no_penalty':
                 continue
 
             agg["penalty_time_sec"] += int(decision.penalty_time_sec)
@@ -187,7 +167,7 @@ class TourismResultCalculator:
                     base_credit_msec + abs(net_tourism_msec)
                 )
 
-            logging.warning(
+            logging.debug(
                 "TOURISM RESULT AFTER APPLY: person_id=%s penalty_time_sec=%s penalty_points=%s cutoff_time_sec=%s stage_dsq_count=%s final_penalty=%s final_credit=%s tourism_penalty=%s tourism_credit=%s",
                 person_id,
                 agg["penalty_time_sec"],
@@ -228,7 +208,7 @@ def patch_result_calculation():
             if getattr(r, 'person', None):
                 penalty = getattr(r, 'penalty_time', None)
                 credit = getattr(r, 'credit_time', None)
-                logging.warning(
+                logging.debug(
                     'TOURISM AFTER STANDARD PROCESS: person=%s result=%s penalty=%s/%s credit=%s/%s tourism_penalty=%s tourism_credit=%s',
                     getattr(r.person, 'full_name', ''),
                     r.get_result() if hasattr(r, 'get_result') else '',

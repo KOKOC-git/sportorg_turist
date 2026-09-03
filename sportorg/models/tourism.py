@@ -15,6 +15,18 @@ class CompetitionType(str, Enum):
     TOURISM = "tourism"
 
 
+TOURISM_COMPETITION_TYPES = {
+    CompetitionType.TOURISM.value,
+    'tourism_individual',
+    'tourism_pair',
+    'tourism_group',
+}
+
+
+def is_tourism_competition_type(value: Any) -> bool:
+    return value in TOURISM_COMPETITION_TYPES
+
+
 class TourismJudgingMode(str, Enum):
     PENALTY = "penalty"
     NO_PENALTY = "no_penalty"
@@ -534,6 +546,9 @@ def ensure_tourism_defaults(obj: Any) -> None:
     if not hasattr(obj, "tourism_judging_mode"):
         obj.tourism_judging_mode = TourismJudgingMode.PENALTY.value
 
+    if not hasattr(obj, "tourism_penalty_point_sec"):
+        obj.tourism_penalty_point_sec = 30
+
     if not hasattr(obj, "tourism_courses"):
         obj.tourism_courses: List[TourismCourse] = []
 
@@ -788,4 +803,3 @@ def repair_orphan_tourism_stages(obj: Any) -> int:
                 changed += 1
 
     return changed
-

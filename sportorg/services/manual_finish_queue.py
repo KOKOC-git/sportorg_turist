@@ -12,13 +12,20 @@ def ensure_manual_finish_queue(race_obj) -> None:
         race_obj.pending_manual_finishes = []
 
 
-def add_pending_finish(race_obj, finish_time: Optional[OTime] = None) -> Dict[str, Any]:
+def add_pending_finish(
+    race_obj,
+    finish_time: Optional[OTime] = None,
+    source: str = 'manual',
+    raw: str = '',
+) -> Dict[str, Any]:
     ensure_manual_finish_queue(race_obj)
     finish_time = finish_time or OTime.now()
     item = {
         'id': str(uuid.uuid4()),
         'finish_time_msec': finish_time.to_msec(),
         'status': 'pending',
+        'source': str(source or 'manual'),
+        'raw': str(raw or ''),
     }
     race_obj.pending_manual_finishes.append(item)
     return item
@@ -71,6 +78,9 @@ def assign_bib_to_oldest(race_obj, bib: int):
     result.person = person
     result.bib = person.bib
     result.finish_time = OTime(msec=int(pending_item['finish_time_msec']))
+    result.finish_event_id = str(pending_item.get('id', ''))
+    result.finish_source = str(pending_item.get('source', 'manual'))
+    result.finish_raw = str(pending_item.get('raw', ''))
     race_obj.add_new_result(result)
 
     pending_item['status'] = 'assigned'

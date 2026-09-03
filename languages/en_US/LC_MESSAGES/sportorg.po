@@ -89,6 +89,9 @@ msgstr "Time settings"
 msgid "Tourism"
 msgstr "Tourism"
 
+msgid "Penalty point seconds"
+msgstr "Seconds per penalty point"
+
 msgid "Tourism stages"
 msgstr "Tourism stages"
 
@@ -1793,3 +1796,8 @@ msgstr "All age groups"
 
 msgid "Without group"
 msgstr "Without group"
+msgid "Source"
+msgstr "Source"
+
+msgid "Raw signal"
+msgstr "Raw signal"

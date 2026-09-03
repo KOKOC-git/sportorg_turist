@@ -3,16 +3,26 @@ name: CI Tests/Lints
 on:
   push:
     paths:
+      - ".github/workflows/check.yml"
+      - "builder.py"
+      - "languages/**"
+      - "pyproject.toml"
       - "sportorg/**"
+      - "templates/**"
       - "tests/**"
       - "poetry.lock"
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
     paths:
+      - ".github/workflows/check.yml"
+      - "builder.py"
+      - "languages/**"
+      - "pyproject.toml"
       - "sportorg/**"
+      - "templates/**"
       - "tests/**"
       - "poetry.lock"
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:

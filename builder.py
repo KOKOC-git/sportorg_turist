@@ -25,7 +25,7 @@ excludes = ["Tkinter", "unittest", "test", "pydoc"]
 build_exe_options = {
     "includes": includes,
     "excludes": excludes,
-    "packages": ["idna", "requests", "encodings", "asyncio", "pywinusb"],
+    "packages": ["idna", "requests", "encodings", "asyncio", "pywinusb", "serial"],
     "include_files": include_files,
     "zip_include_packages": ["PySide6"],
     "optimize": 2,

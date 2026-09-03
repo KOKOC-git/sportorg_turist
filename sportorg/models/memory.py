@@ -17,6 +17,7 @@ from sportorg.modules.configs.configs import Config
 from sportorg.utils.time import hhmmss_to_time
 from sportorg.models.tourism import (
     CompetitionType,
+    is_tourism_competition_type,
     TourismJudgingMode,
     TourismStage,
     TourismStageDecision,
@@ -495,6 +496,9 @@ class Result:
         self.speed = ''
         self.can_win_count = 0  # quantity of athletes who can win at current time
         self.final_result_time: Optional[OTime] = None  # real time, when nobody can win
+        self.finish_event_id = ''
+        self.finish_source = ''
+        self.finish_raw = ''
 
         self.card_number = 0
         self.splits: List[Split] = []
@@ -554,15 +558,21 @@ class Result:
         return bool(eq)
 
     def __gt__(self, other) -> bool:  # greater is worse
-        if getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value:
+        if self.is_status_ok() != other.is_status_ok():
+            return other.is_status_ok()
+
+        if (
+            self.is_status_ok()
+            and is_tourism_competition_type(
+                getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
+            )
+        ):
             self_stage_dsq_count = getattr(self, 'tourism_stage_dsq_count', 0)
             other_stage_dsq_count = getattr(other, 'tourism_stage_dsq_count', 0)
             if self_stage_dsq_count != other_stage_dsq_count:
                 return self_stage_dsq_count > other_stage_dsq_count
 
-        if self.is_status_ok() != other.is_status_ok():
-            return other.is_status_ok()
-        elif self.status != other.status and not self.is_status_ok():
+        if self.status != other.status and not self.is_status_ok():
             # incorrect statuses sort
             return self.status.value > other.status.value
 
@@ -621,6 +631,9 @@ class Result:
             'rogaine_penalty': self.rogaine_penalty,  # readonly
             'scores_ardf': self.scores_ardf,  # readonly
             'created_at': self.created_at,  # readonly
+            'finish_event_id': self.finish_event_id,
+            'finish_source': self.finish_source,
+            'finish_raw': self.finish_raw,
             'result': self.get_result(),  # readonly
             'result_relay': self.get_result_relay(),
             'result_current': (
@@ -677,6 +690,10 @@ class Result:
         else:
             self.created_at = time.time()
 
+        self.finish_event_id = str(data.get('finish_event_id', ''))
+        self.finish_source = str(data.get('finish_source', ''))
+        self.finish_raw = str(data.get('finish_raw', ''))
+
         if 'bib' in data:
             self.bib = int(data['bib'])
 
@@ -698,7 +715,9 @@ class Result:
         return self.bib
 
     def get_tourism_info(self) -> str:
-        if getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value) != CompetitionType.TOURISM.value:
+        if not is_tourism_competition_type(
+            getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
+        ):
             return ''
 
         parts = []
@@ -1639,9 +1658,11 @@ class Race(Model):
         self.settings: Dict[str, Any] = {}
         self.competition_type = CompetitionType.INDIVIDUAL.value
         self.tourism_judging_mode = TourismJudgingMode.PENALTY.value
+        self.tourism_penalty_point_sec = 30
         self.tourism_courses: List[TourismCourse] = []
         self.tourism_stages: List[TourismStage] = []
         self.tourism_stage_decisions: List[TourismStageDecision] = []
+        self.pending_manual_finishes: List[Dict[str, Any]] = []
         self.web_stage_passages = []
         self.web_timing_stage_token = ''
         self.web_timing_finish_token = ''
@@ -1697,9 +1718,11 @@ class Race(Model):
             'settings': self.settings,
             'competition_type': self.competition_type,
             'tourism_judging_mode': self.tourism_judging_mode,
+            'tourism_penalty_point_sec': self.tourism_penalty_point_sec,
             'tourism_courses': [item.to_dict() for item in self.tourism_courses],
             'tourism_stages': [item.to_dict() for item in self.tourism_stages],
             'tourism_stage_decisions': [item.to_dict() for item in self.tourism_stage_decisions],
+            'pending_manual_finishes': list(self.pending_manual_finishes),
             'organizations': [item.to_dict() for item in self.organizations],
             'courses': [item.to_dict() for item in self.courses],
             'groups': [item.to_dict() for item in self.groups],
@@ -1787,8 +1810,10 @@ class Race(Model):
                 'settings': self.settings,
                 'competition_type': self.competition_type,
                 'tourism_judging_mode': self.tourism_judging_mode,
+                'tourism_penalty_point_sec': self.tourism_penalty_point_sec,
                 'tourism_stages': [item.to_dict() for item in self.tourism_stages],
                 'tourism_stage_decisions': [item.to_dict() for item in self.tourism_stage_decisions],
+                'pending_manual_finishes': list(self.pending_manual_finishes),
                 'organizations': [item.to_dict() for item in return_orgs],
                 'courses': [item.to_dict() for item in return_courses],
                 'groups': [item.to_dict() for item in return_groups],
@@ -1813,6 +1838,10 @@ class Race(Model):
                 'tourism_judging_mode',
                 TourismJudgingMode.PENALTY.value,
             )
+            self.tourism_penalty_point_sec = max(
+                1,
+                int(dict_obj.get('tourism_penalty_point_sec', 30) or 30),
+            )
             self.tourism_courses = [
                 TourismCourse.from_dict(item)
                 for item in dict_obj.get('tourism_courses', [])
@@ -1825,6 +1854,23 @@ class Race(Model):
                 TourismStageDecision.from_dict(item)
                 for item in dict_obj.get('tourism_stage_decisions', [])
             ]
+            self.pending_manual_finishes = []
+            for item in dict_obj.get('pending_manual_finishes', []):
+                if not isinstance(item, dict) or item.get('status', 'pending') != 'pending':
+                    continue
+                try:
+                    finish_time_msec = int(item['finish_time_msec'])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                self.pending_manual_finishes.append(
+                    {
+                        'id': str(item.get('id') or uuid.uuid4()),
+                        'finish_time_msec': finish_time_msec,
+                        'status': 'pending',
+                        'source': str(item.get('source') or 'manual'),
+                        'raw': str(item.get('raw') or ''),
+                    }
+                )
 
             from sportorg.models.tourism import ensure_tourism_defaults
             ensure_tourism_defaults(self)

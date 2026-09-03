@@ -767,7 +767,12 @@ class PhotoFinishStartAction(Action, metaclass=ActionFactory):
             pass
 
         def handle_finish(event):
-            add_pending_finish(race(), _photo_finish_event_otime(event))
+            add_pending_finish(
+                race(),
+                _photo_finish_event_otime(event),
+                source=getattr(event, 'source', 'photo_finish'),
+                raw=getattr(event, 'raw', ''),
+            )
             _show_manual_finish_queue(self.app)
             logging.info('Photo finish trigger: %s raw=%s', event.timestamp, event.raw)
             self.app.refresh()
@@ -837,7 +842,7 @@ class PhotoFinishStopAction(Action, metaclass=ActionFactory):
 class PhotoFinishTestAction(Action, metaclass=ActionFactory):
     def execute(self):
         def on_finish(event):
-            add_pending_finish(race())
+            add_pending_finish(race(), source='photo_finish_test', raw='TEST')
             _show_manual_finish_queue(self.app)
             logging.info('Photo finish test trigger: %s', event.timestamp)
             self.app.refresh()

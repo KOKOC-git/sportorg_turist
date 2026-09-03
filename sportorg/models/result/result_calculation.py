@@ -10,6 +10,7 @@ from sportorg.models.memory import (
     find,
 )
 from sportorg.modules.configs.configs import Config
+from sportorg.models.tourism import is_tourism_competition_type
 
 
 class ResultCalculation:
@@ -78,7 +79,7 @@ class ResultCalculation:
         is_ardf = self.race.get_setting('result_processing_mode', 'time') == 'ardf'
         current_place = 1
         last_place = 1
-        last_result = 0
+        last_result = None
         for i in range(len(array)):
             res = array[i]
 
@@ -86,6 +87,14 @@ class ResultCalculation:
             # give place only if status = OK
             if res.is_status_ok():
                 current_result = res.get_result_otime()
+                place_key = current_result
+                if is_tourism_competition_type(
+                    getattr(self.race, 'competition_type', None)
+                ):
+                    place_key = (
+                        int(getattr(res, 'tourism_stage_dsq_count', 0) or 0),
+                        current_result,
+                    )
                 res.diff = current_result - array[0].get_result_otime()
                 if is_rogaine:
                     res.diff_scores = array[0].rogaine_score - res.rogaine_score
@@ -98,9 +107,9 @@ class ResultCalculation:
                     continue
 
                 # the same place processing
-                if current_place == 1 or current_result != last_result:
+                if current_place == 1 or place_key != last_result:
                     # result differs from previous - give next place
-                    last_result = current_result
+                    last_result = place_key
                     last_place = current_place
 
                 res.place = last_place

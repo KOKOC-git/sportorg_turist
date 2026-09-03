@@ -1668,6 +1668,9 @@ msgstr "Пропущен штрафной круг"
 msgid "Tourism"
 msgstr "Туризм"
 
+msgid "Penalty point seconds"
+msgstr "Секунд за штрафной балл"
+
 msgid "Tourism stages"
 msgstr "Этапы туризма"
 
@@ -2013,3 +2016,8 @@ msgstr "Все возрастные группы"
 
 msgid "Without group"
 msgstr "Без группы"
+msgid "Source"
+msgstr "Источник"
+
+msgid "Raw signal"
+msgstr "Исходный сигнал"

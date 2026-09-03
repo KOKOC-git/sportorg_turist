@@ -4,18 +4,71 @@
 
 {% block content %}
 <div class="text-center">
-    <h3>{{ race.data.description }} <br>{{ race.data.start_datetime|date }} {{ race.data.location }}</h3>
-    <h2>ПРОТОКОЛ РЕЗУЛЬТАТОВ — ТУРИЗМ</h2>
+    <h3 id="protocol-main-title"></h3>
+    <div id="protocol-subtitle" class="protocol-subtitle"></div>
+    <div id="protocol-event-details" class="protocol-event-details"></div>
+    <h2 id="protocol-title"></h2>
+    <div id="protocol-distance" class="protocol-distance"></div>
+    <div id="protocol-judging-mode" class="protocol-judging-mode"></div>
 </div>
 
-<div class="tourism-report-controls">
+<details class="tourism-header-editor no-print" open>
+    <summary>Настройка шапки протокола перед печатью</summary>
+    <div class="tourism-header-editor-grid">
+        <label>Название соревнования<input id="header-main-title" type="text"></label>
+        <label>Подзаголовок<input id="header-subtitle" type="text"></label>
+        <label>Дата<input id="header-date" type="text"></label>
+        <label>Место проведения<input id="header-location" type="text"></label>
+        <label>Название протокола<input id="header-protocol-title" type="text"></label>
+        <label>Дистанция / дисциплина<input id="header-distance" type="text"></label>
+        <label>Режим судейства<input id="header-judging-mode" type="text"></label>
+        <label>Главный судья<input id="header-chief-referee" type="text"></label>
+        <label>Главный секретарь<input id="header-secretary" type="text"></label>
+    </div>
+</details>
+
+<div class="tourism-report-controls no-print">
     <label>
         <input type="checkbox" id="show-stage-penalties" checked>
         Показывать штрафы по этапам
     </label>
+    <label class="tourism-print-option">
+        Формат бумаги
+        <select id="print-page-size">
+            <option value="A4">A4</option>
+            <option value="A3">A3</option>
+        </select>
+    </label>
+    <label class="tourism-print-option">
+        Ориентация
+        <select id="print-orientation">
+            <option value="landscape">Альбомная</option>
+            <option value="portrait">Книжная</option>
+        </select>
+    </label>
+    <label class="tourism-print-option">
+        Этапов на листе
+        <select id="print-stages-per-sheet">
+            <option value="0">Все</option>
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+        </select>
+    </label>
+    <button type="button" id="print-protocol">Печать</button>
 </div>
 
 <div id="tourism-results"></div>
+
+<div id="protocol-signatures" class="protocol-signatures">
+    <div id="protocol-chief-referee-row" class="protocol-signature-row">
+        <span>Главный судья</span><span id="protocol-chief-referee"></span>
+    </div>
+    <div id="protocol-secretary-row" class="protocol-signature-row">
+        <span>Главный секретарь</span><span id="protocol-secretary"></span>
+    </div>
+</div>
 
 {% raw %}
 <style>
@@ -62,14 +115,258 @@
         font-size: 13px;
     }
 
+    .tourism-report-controls button {
+        margin-left: 16px;
+        padding: 5px 18px;
+        cursor: pointer;
+    }
+
+    .tourism-print-option {
+        margin-left: 16px;
+    }
+
+    .tourism-print-option select {
+        margin-left: 4px;
+        padding: 3px 6px;
+    }
+
+    .tourism-header-editor {
+        margin: 14px 0;
+        padding: 10px 12px;
+        border: 1px solid #bbb;
+        border-radius: 5px;
+        background: #f7f7f7;
+    }
+
+    .tourism-header-editor summary {
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .tourism-header-editor-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+        gap: 9px 12px;
+        margin-top: 12px;
+    }
+
+    .tourism-header-editor-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 12px;
+    }
+
+    .tourism-header-editor-grid input {
+        padding: 5px 7px;
+        border: 1px solid #aaa;
+        border-radius: 3px;
+        font: inherit;
+    }
+
+    .protocol-subtitle,
+    .protocol-event-details,
+    .protocol-distance,
+    .protocol-judging-mode {
+        margin: 3px 0;
+    }
+
+    .protocol-subtitle {
+        font-size: 16px;
+    }
+
+    .protocol-distance,
+    .protocol-judging-mode {
+        font-size: 13px;
+    }
+
+    .protocol-signatures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 48px;
+        margin-top: 26px;
+        font-size: 12px;
+    }
+
+    .protocol-signature-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid #333;
+    }
+
+    @media (max-width: 900px) {
+        .tourism-header-editor-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
     body.hide-stage-penalties .stage-penalties-col {
         display: none;
+    }
+
+    @media print {
+        .text-center {
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+
+        .tourism-group-title {
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+
+        .tourism-protocol-group {
+            break-after: page;
+            page-break-after: always;
+        }
+
+        .tourism-protocol-group:last-child {
+            break-after: auto;
+            page-break-after: auto;
+        }
+
+        .sportorg-table {
+            display: table;
+            width: 100%;
+            table-layout: auto;
+        }
+
+        .sportorg-table thead {
+            display: table-header-group;
+        }
+
+        .sportorg-table tbody {
+            display: table-row-group;
+        }
+
+        .sportorg-table tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            white-space: normal;
+        }
+
+        .sportorg-table th,
+        .sportorg-table td {
+            padding: 2px 4px;
+            font-size: 9px;
+            overflow-wrap: anywhere;
+        }
+
+        body.print-many-stages .sportorg-table th,
+        body.print-many-stages .sportorg-table td {
+            padding: 1px 2px;
+            font-size: 8px;
+        }
+
+        body.print-many-stages-extra .sportorg-table th,
+        body.print-many-stages-extra .sportorg-table td {
+            padding: 1px;
+            font-size: 7px;
+        }
+
+        .protocol-signatures {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
     }
 </style>
 
 <script>
     var race = {% endraw %}{{ race|tojson }}{% raw %};
     racePreparation(race);
+
+    function formatProtocolDate(value) {
+        if (!value) {
+            return '';
+        }
+
+        var match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+            return match[3] + '.' + match[2] + '.' + match[1];
+        }
+
+        return String(value);
+    }
+
+    function getTourismCourseNames() {
+        var names = [];
+        var courses = race.tourism_courses || [];
+
+        for (var i = 0; i < courses.length; i++) {
+            var name = String(courses[i].name || '').trim();
+            if (name && names.indexOf(name) === -1) {
+                names.push(name);
+            }
+        }
+
+        return names.join(', ');
+    }
+
+    function setEditorValue(id, value) {
+        var element = document.getElementById(id);
+        if (element) {
+            element.value = value || '';
+        }
+    }
+
+    function setVisibleText(id, value) {
+        var element = document.getElementById(id);
+        if (!element) {
+            return;
+        }
+
+        element.textContent = value || '';
+        element.style.display = value ? '' : 'none';
+    }
+
+    function updateProtocolHeader() {
+        var date = document.getElementById('header-date').value.trim();
+        var location = document.getElementById('header-location').value.trim();
+        var eventDetails = [date, location].filter(Boolean).join(', ');
+        var chiefReferee = document.getElementById('header-chief-referee').value.trim();
+        var secretary = document.getElementById('header-secretary').value.trim();
+
+        setVisibleText('protocol-main-title', document.getElementById('header-main-title').value.trim());
+        setVisibleText('protocol-subtitle', document.getElementById('header-subtitle').value.trim());
+        setVisibleText('protocol-event-details', eventDetails);
+        setVisibleText('protocol-title', document.getElementById('header-protocol-title').value.trim());
+        setVisibleText('protocol-distance', document.getElementById('header-distance').value.trim());
+        setVisibleText('protocol-judging-mode', document.getElementById('header-judging-mode').value.trim());
+        setVisibleText('protocol-chief-referee', chiefReferee);
+        setVisibleText('protocol-secretary', secretary);
+
+        document.getElementById('protocol-chief-referee-row').style.display = chiefReferee ? '' : 'none';
+        document.getElementById('protocol-secretary-row').style.display = secretary ? '' : 'none';
+        document.getElementById('protocol-signatures').style.display = chiefReferee || secretary ? '' : 'none';
+    }
+
+    function initializeProtocolHeaderEditor() {
+        var data = race.data || {};
+        var judgingMode = race.tourism_judging_mode === 'no_penalty'
+            ? 'Режим судейства: без штрафов'
+            : 'Режим судейства: со штрафами';
+
+        setEditorValue('header-main-title', data.title || data.description || '');
+        setEditorValue('header-subtitle', data.title && data.description ? data.description : '');
+        setEditorValue('header-date', formatProtocolDate(data.start_datetime));
+        setEditorValue('header-location', data.location || '');
+        setEditorValue('header-protocol-title', 'ПРОТОКОЛ РЕЗУЛЬТАТОВ — ТУРИЗМ');
+        setEditorValue('header-distance', getTourismCourseNames());
+        setEditorValue('header-judging-mode', judgingMode);
+        setEditorValue('header-chief-referee', data.chief_referee || '');
+        setEditorValue('header-secretary', data.secretary || '');
+
+        var inputs = document.querySelectorAll('.tourism-header-editor input');
+        for (var i = 0; i < inputs.length; i++) {
+            inputs[i].addEventListener('input', updateProtocolHeader);
+        }
+
+        updateProtocolHeader();
+    }
+
+    initializeProtocolHeaderEditor();
 
     function safeText(value) {
         if (value === null || value === undefined) {
@@ -211,6 +508,47 @@
         });
 
         return stages;
+    }
+
+    function updatePrintDensity() {
+        var stagesPerSheet = Number(
+            document.getElementById('print-stages-per-sheet').value || 0
+        );
+        var stageCount = stagesPerSheet || getTourismStagesSorted().length;
+        document.body.classList.toggle('print-many-stages', stageCount > 6);
+        document.body.classList.toggle('print-many-stages-extra', stageCount > 10);
+    }
+
+    function getStageChunks() {
+        var stages = getTourismStagesSorted();
+        var stagesPerSheet = Number(
+            document.getElementById('print-stages-per-sheet').value || 0
+        );
+
+        if (!stagesPerSheet || stages.length <= stagesPerSheet) {
+            return [stages];
+        }
+
+        var chunks = [];
+        for (var index = 0; index < stages.length; index += stagesPerSheet) {
+            chunks.push(stages.slice(index, index + stagesPerSheet));
+        }
+        return chunks;
+    }
+
+    function updatePrintPageStyle() {
+        var pageSize = document.getElementById('print-page-size').value;
+        var orientation = document.getElementById('print-orientation').value;
+        var style = document.getElementById('tourism-print-page-style');
+
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'tourism-print-page-style';
+            document.head.appendChild(style);
+        }
+
+        style.textContent = '@page { size: ' + pageSize + ' ' + orientation + '; margin: 8mm; }';
+        updatePrintDensity();
     }
 
     function getStageTitle(stage) {
@@ -366,6 +704,15 @@
             return aOk ? -1 : 1;
         }
 
+        if (aOk && bOk) {
+            var aStageDsqCount = Number(a.tourism_stage_dsq_count || 0);
+            var bStageDsqCount = Number(b.tourism_stage_dsq_count || 0);
+
+            if (aStageDsqCount !== bStageDsqCount) {
+                return aStageDsqCount - bStageDsqCount;
+            }
+        }
+
         var aTime = getResultMsec(a);
         var bTime = getResultMsec(b);
 
@@ -404,7 +751,7 @@
 
         var place = 0;
         var counted = 0;
-        var previousTime = null;
+        var previousKey = null;
 
         for (var i = 0; i < results.length; i++) {
             var result = results[i];
@@ -422,9 +769,10 @@
 
             counted += 1;
 
-            if (previousTime === null || time !== previousTime) {
+            var resultKey = Number(result.tourism_stage_dsq_count || 0) + ':' + time;
+            if (previousKey === null || resultKey !== previousKey) {
                 place = counted;
-                previousTime = time;
+                previousKey = resultKey;
             }
 
             result._tourism_place = place;
@@ -445,15 +793,29 @@
         return th;
     }
 
-    function buildGroupTable(groupName, results) {
+    function buildGroupTable(groupName, results, stages, sheetIndex, sheetCount) {
         results = assignPlaces(results);
+        var isSplitStageSheet = sheetCount > 1;
 
         var block = document.createElement('div');
         block.className = 'tourism-protocol-group';
 
         var title = document.createElement('div');
         title.className = 'tourism-group-title';
-        title.appendChild(document.createTextNode('Возрастная группа: ' + groupName));
+        var titleText = 'Возрастная группа: ' + groupName;
+        if (isSplitStageSheet) {
+            var firstStage = stages.length ? getStageTitle(stages[0]) : '';
+            var lastStage = stages.length ? getStageTitle(stages[stages.length - 1]) : '';
+            titleText += ' — этапы, лист ' + (sheetIndex + 1) + ' из ' + sheetCount;
+            if (firstStage) {
+                titleText += ' (этапы ' + firstStage;
+                if (lastStage && lastStage !== firstStage) {
+                    titleText += ' — ' + lastStage;
+                }
+                titleText += ')';
+            }
+        }
+        title.appendChild(document.createTextNode(titleText));
         block.appendChild(title);
 
         var table = document.createElement('table');
@@ -462,33 +824,33 @@
         var thead = document.createElement('thead');
         var headerRow = document.createElement('tr');
 
-        [
-            'Место',
-            '№',
-            'Участник',
-            'Коллектив',
-            'Старт',
-            'Финиш',
-            'Время',
-            'Отсечка'
-        ].forEach(function (title) {
+        var leadingHeaders = isSplitStageSheet
+            ? ['№']
+            : [
+                'Место',
+                '№',
+                'Участник',
+                'Коллектив',
+                'Старт',
+                'Финиш',
+                'Время',
+                'Отсечка'
+            ];
+        leadingHeaders.forEach(function (title) {
             headerRow.appendChild(createHeaderCell(title));
         });
 
-        getTourismStagesSorted().forEach(function (stage) {
+        stages.forEach(function (stage) {
             var th = createHeaderCell(getStageTitle(stage));
             th.className = 'stage-penalties-col';
             headerRow.appendChild(th);
         });
 
-        [
-            'Штраф',
-            'Итог',
-            'Статус',
-            'Очки'
-        ].forEach(function (title) {
-            headerRow.appendChild(createHeaderCell(title));
-        });
+        if (!isSplitStageSheet) {
+            ['Штраф', 'Итог', 'Статус', 'Очки'].forEach(function (title) {
+                headerRow.appendChild(createHeaderCell(title));
+            });
+        }
 
         thead.appendChild(headerRow);
         table.appendChild(thead);
@@ -500,16 +862,20 @@
 
             var tr = document.createElement('tr');
 
-            tr.appendChild(createCell(result._tourism_place));
-            tr.appendChild(createCell(getBib(result)));
-            tr.appendChild(createCell(getPersonName(result)));
-            tr.appendChild(createCell(getTeamName(result)));
-            tr.appendChild(createCell(result.start_time ? toHHMMSSFromMsec(result.start_time) : ''));
-            tr.appendChild(createCell(result.finish_time ? toHHMMSSFromMsec(result.finish_time) : ''));
-            tr.appendChild(createCell(result.result_msec ? toHHMMSSFromMsec(result.result_msec) : ''));
-            tr.appendChild(createCell(getCutoffText(result)));
+            if (isSplitStageSheet) {
+                tr.appendChild(createCell(getBib(result)));
+            } else {
+                tr.appendChild(createCell(result._tourism_place));
+                tr.appendChild(createCell(getBib(result)));
+                tr.appendChild(createCell(getPersonName(result)));
+                tr.appendChild(createCell(getTeamName(result)));
+                tr.appendChild(createCell(result.start_time ? toHHMMSSFromMsec(result.start_time) : ''));
+                tr.appendChild(createCell(result.finish_time ? toHHMMSSFromMsec(result.finish_time) : ''));
+                tr.appendChild(createCell(result.result_msec ? toHHMMSSFromMsec(result.result_msec) : ''));
+                tr.appendChild(createCell(getCutoffText(result)));
+            }
 
-            getTourismStagesSorted().forEach(function (stage) {
+            stages.forEach(function (stage) {
                 var stagePenaltyCell = createCell(
                     getStageDecisionTextForResultAndStage(result, stage)
                 );
@@ -517,10 +883,17 @@
                 tr.appendChild(stagePenaltyCell);
             });
 
-            tr.appendChild(createCell(getPenaltyText(result)));
-            tr.appendChild(createCell(getResultText(result)));
-            tr.appendChild(createCell(getStatusText(result.status)));
-            tr.appendChild(createCell(result.scores || ''));
+            if (!isSplitStageSheet) {
+                tr.appendChild(createCell(getPenaltyText(result)));
+                tr.appendChild(createCell(getResultText(result)));
+                var statusText = getStatusText(result.status);
+                var stageDsqCount = Number(result.tourism_stage_dsq_count || 0);
+                if (isOk(result) && stageDsqCount > 0) {
+                    statusText = 'Снят с этапов: ' + stageDsqCount;
+                }
+                tr.appendChild(createCell(statusText));
+                tr.appendChild(createCell(result.scores || ''));
+            }
 
             tbody.appendChild(tr);
         }
@@ -531,9 +904,15 @@
         return block;
     }
 
+    function buildGroupSummaryTable(groupName, results) {
+        return buildGroupTable(groupName + ' — итоговый лист', results, [], 0, 1);
+    }
+
     function renderTourismResults() {
         var root = document.getElementById('tourism-results');
+        root.textContent = '';
         var grouped = groupResultsByAgeGroup();
+        var stageChunks = getStageChunks();
         var groupNames = Object.keys(grouped).sort(function (a, b) {
             return a.localeCompare(b);
         });
@@ -547,11 +926,23 @@
 
         for (var i = 0; i < groupNames.length; i++) {
             var groupName = groupNames[i];
-            root.appendChild(buildGroupTable(groupName, grouped[groupName]));
+            for (var sheetIndex = 0; sheetIndex < stageChunks.length; sheetIndex++) {
+                root.appendChild(buildGroupTable(
+                    groupName,
+                    grouped[groupName],
+                    stageChunks[sheetIndex],
+                    sheetIndex,
+                    stageChunks.length
+                ));
+            }
+            if (stageChunks.length > 1) {
+                root.appendChild(buildGroupSummaryTable(groupName, grouped[groupName]));
+            }
         }
     }
 
     renderTourismResults();
+    updatePrintPageStyle();
 
     var showStagePenaltiesCheckbox = document.getElementById('show-stage-penalties');
     if (showStagePenaltiesCheckbox) {
@@ -563,6 +954,24 @@
             }
         });
     }
+
+    var printProtocolButton = document.getElementById('print-protocol');
+    if (printProtocolButton) {
+        printProtocolButton.addEventListener('click', function () {
+            window.print();
+        });
+    }
+
+    var printPageSize = document.getElementById('print-page-size');
+    var printOrientation = document.getElementById('print-orientation');
+    var printStagesPerSheet = document.getElementById('print-stages-per-sheet');
+    printPageSize.addEventListener('change', updatePrintPageStyle);
+    printOrientation.addEventListener('change', updatePrintPageStyle);
+    printStagesPerSheet.addEventListener('change', function () {
+        renderTourismResults();
+        updatePrintPageStyle();
+    });
+    window.addEventListener('beforeprint', updatePrintPageStyle);
 </script>
 {% endraw %}
 {% endblock %}

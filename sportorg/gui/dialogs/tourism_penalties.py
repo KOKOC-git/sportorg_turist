@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -43,13 +41,16 @@ from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.tourism import (
     CompetitionType,
     TourismJudgingMode,
-    TourismStageDecision,
     ensure_tourism_defaults, repair_tourism_data, repair_tourism_courses_from_stages,
     get_tourism_stages_for_group,
     hms_to_sec,
+    is_tourism_competition_type,
     sec_to_hms,
 )
 from sportorg.services.tourism_result_calculation import TourismResultCalculator
+from sportorg.services.tourism_decision_updates import (
+    build_updated_tourism_decisions,
+)
 
 
 class TourismPenaltiesDialog(QDialog):
@@ -173,7 +174,7 @@ class TourismPenaltiesDialog(QDialog):
         if not group_type:
             group_type = getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
 
-        return group_type == CompetitionType.TOURISM.value
+        return is_tourism_competition_type(group_type)
 
     def find_competitor(self):
         self.current_person = self._find_person()
@@ -312,46 +313,30 @@ class TourismPenaltiesDialog(QDialog):
         )
 
         try:
+            updates = []
             for row, stage_id in enumerate(self.stage_ids):
                 penalty_time_sec, penalty_points, cutoff_time_sec, is_dsq, comment = self._row_values(row)
+                updates.append({
+                    'stage_id': str(stage_id),
+                    'person_id': person_id,
+                    'penalty_time_sec': penalty_time_sec,
+                    'penalty_points': penalty_points,
+                    'cutoff_time_sec': cutoff_time_sec,
+                    'is_stage_dsq': is_dsq,
+                    'comment': comment,
+                })
 
-                existing = self._find_existing_decision(stage_id, person_id)
-
-                is_empty = (
-                    not is_dsq
-                    and penalty_time_sec == 0
-                    and penalty_points == 0
-                    and cutoff_time_sec == 0
-                    and not comment
-                )
-
-                if is_empty:
-                    if existing:
-                        race().tourism_stage_decisions = [
-                            d for d in race().tourism_stage_decisions
-                            if d.id != existing.id
-                        ]
-                    continue
-
-                decision = existing or TourismStageDecision(
-                    stage_id=str(stage_id),
-                    person_id=person_id,
-                )
-
-                decision.penalty_time_sec = penalty_time_sec
-                decision.penalty_points = penalty_points
-                decision.cutoff_time_sec = cutoff_time_sec
-                decision.is_stage_dsq = is_dsq
-                decision.comment = comment
-                decision.updated_at = datetime.utcnow().isoformat()
-                decision.validate(mode)
-
-                if existing is None:
-                    race().tourism_stage_decisions.append(decision)
+            updated_decisions = build_updated_tourism_decisions(
+                race().tourism_stage_decisions,
+                updates,
+                mode,
+            )
 
         except Exception as e:
             QMessageBox.warning(self, translate('Error'), str(e))
             return
+
+        race().tourism_stage_decisions = updated_decisions
 
         self.recalc_results()
         self.load_stage_table()

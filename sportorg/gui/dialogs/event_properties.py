@@ -79,6 +79,14 @@ class EventPropertiesDialog(QDialog):
         )
         self.layout.addRow(self.label_judging_mode, self.item_judging_mode)
 
+        self.label_penalty_point_sec = QLabel(translate('Penalty point seconds'))
+        self.item_penalty_point_sec = AdvSpinBox(
+            minimum=1,
+            maximum=3600,
+            value=30,
+        )
+        self.layout.addRow(self.label_penalty_point_sec, self.item_penalty_point_sec)
+
         self.label_relay_legs = QLabel(translate('Relay legs'))
         self.item_relay_legs = AdvSpinBox(minimum=1, maximum=20, value=3)
         self.layout.addRow(self.label_relay_legs, self.item_relay_legs)
@@ -134,6 +142,8 @@ class EventPropertiesDialog(QDialog):
 
         self.label_judging_mode.setVisible(is_tourism)
         self.item_judging_mode.setVisible(is_tourism)
+        self.label_penalty_point_sec.setVisible(is_tourism)
+        self.item_penalty_point_sec.setVisible(is_tourism)
 
     def set_values_from_model(self):
         obj = race()
@@ -148,6 +158,9 @@ class EventPropertiesDialog(QDialog):
         self.item_start_date.setDateTime(obj.data.get_start_datetime())
         self.item_end_date.setDateTime(obj.data.get_end_datetime())
         self.item_relay_legs.setValue(obj.data.relay_leg_count)
+        self.item_penalty_point_sec.setValue(
+            int(getattr(obj, 'tourism_penalty_point_sec', 30) or 30)
+        )
 
         if obj.competition_type in [
             CompetitionType.TOURISM.value,
@@ -208,6 +221,7 @@ class EventPropertiesDialog(QDialog):
         if selected_type in tourism_type_values:
             obj.competition_type = tourism_type_values[selected_type]
             obj.data.race_type = RaceType.INDIVIDUAL_RACE
+            obj.tourism_penalty_point_sec = self.item_penalty_point_sec.value()
             if self.item_judging_mode.currentText() == translate('No penalty'):
                 obj.tourism_judging_mode = TourismJudgingMode.NO_PENALTY.value
             else:

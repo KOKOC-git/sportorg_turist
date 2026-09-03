@@ -96,4 +96,4 @@
 
 ```bash
 
-tourism-main
+main
