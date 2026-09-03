@@ -23,6 +23,7 @@ from sportorg.modules.live.live import live_client
 from sportorg.modules.teamwork.teamwork import Teamwork
 from sportorg.services.manual_finish_queue import (
     add_pending_finish,
+    assign_bib_to_finish,
     assign_bib_to_oldest,
     get_pending_items,
     remove_last_pending,
@@ -41,14 +42,14 @@ class ManualFinishQueueDialog(QDialog):
 
         self.layout = QVBoxLayout(self)
 
-        self.label = QLabel(translate('Pending manual finishes'))
+        self.label = QLabel(translate('Finish arrival order'))
         self.layout.addWidget(self.label)
 
         self.table = QTableWidget(self)
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(
             [
-                translate('Queue'),
+                translate('Arrival order'),
                 translate('Finish time'),
                 translate('Source'),
                 translate('Raw signal'),
@@ -63,7 +64,7 @@ class ManualFinishQueueDialog(QDialog):
         self.input_label = QLabel(translate('Bib'))
         self.input_bib = QLineEdit()
         self.input_bib.returnPressed.connect(self.assign_current)
-        self.btn_assign = QPushButton(translate('Assign'))
+        self.btn_assign = QPushButton(translate('Assign or correct'))
         self.btn_assign.clicked.connect(self.assign_current)
         input_row.addWidget(self.input_label)
         input_row.addWidget(self.input_bib)
@@ -104,16 +105,35 @@ class ManualFinishQueueDialog(QDialog):
 
                 time_text = OTime(msec=int(finish_time)).to_str()
 
-            self.table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
+            status = str(item.get('status', 'pending'))
+            status_text = (
+                translate('Assigned')
+                if status == 'assigned'
+                else translate('Waiting for bib')
+            )
+
+            self.table.setItem(
+                row,
+                0,
+                QTableWidgetItem(str(item.get('arrival_order', row + 1))),
+            )
             self.table.setItem(row, 1, QTableWidgetItem(time_text))
             self.table.setItem(row, 2, QTableWidgetItem(str(item.get('source', 'manual'))))
             self.table.setItem(row, 3, QTableWidgetItem(str(item.get('raw', ''))))
             self.table.setItem(row, 4, QTableWidgetItem(str(item.get('bib', ''))))
-            self.table.setItem(row, 5, QTableWidgetItem(str(item.get('status', 'pending'))))
+            self.table.setItem(row, 5, QTableWidgetItem(status_text))
             self.table.item(row, 0).setData(Qt.UserRole, item.get('id'))
 
-        if items:
-            self.table.selectRow(0)
+        pending_row = next(
+            (
+                row
+                for row, item in enumerate(items)
+                if item.get('status', 'pending') == 'pending'
+            ),
+            -1,
+        )
+        if pending_row >= 0:
+            self.table.selectRow(pending_row)
         else:
             self.table.clearSelection()
 
@@ -133,7 +153,18 @@ class ManualFinishQueueDialog(QDialog):
         if not bib:
             return
         try:
-            result = assign_bib_to_oldest(race(), int(bib))
+            selected_row = self.table.currentRow()
+            selected_item = (
+                self.table.item(selected_row, 0)
+                if selected_row >= 0
+                else None
+            )
+            item_id = selected_item.data(Qt.UserRole) if selected_item else None
+            result = (
+                assign_bib_to_finish(race(), item_id, int(bib))
+                if item_id
+                else assign_bib_to_oldest(race(), int(bib))
+            )
             Teamwork().send(result.to_dict())
             live_client.send(result)
             ResultCalculation(race()).process_results()

@@ -1855,22 +1855,39 @@ class Race(Model):
                 for item in dict_obj.get('tourism_stage_decisions', [])
             ]
             self.pending_manual_finishes = []
-            for item in dict_obj.get('pending_manual_finishes', []):
-                if not isinstance(item, dict) or item.get('status', 'pending') != 'pending':
+            for index, item in enumerate(
+                dict_obj.get('pending_manual_finishes', []),
+                1,
+            ):
+                if not isinstance(item, dict):
                     continue
                 try:
                     finish_time_msec = int(item['finish_time_msec'])
                 except (KeyError, TypeError, ValueError):
                     continue
-                self.pending_manual_finishes.append(
-                    {
-                        'id': str(item.get('id') or uuid.uuid4()),
-                        'finish_time_msec': finish_time_msec,
-                        'status': 'pending',
-                        'source': str(item.get('source') or 'manual'),
-                        'raw': str(item.get('raw') or ''),
-                    }
-                )
+                status = str(item.get('status') or 'pending')
+                if status not in ('pending', 'assigned'):
+                    status = 'pending'
+                try:
+                    arrival_order = int(
+                        item.get('arrival_order', index) or index
+                    )
+                except (TypeError, ValueError):
+                    arrival_order = index
+                restored_item = {
+                    'id': str(item.get('id') or uuid.uuid4()),
+                    'arrival_order': arrival_order,
+                    'finish_time_msec': finish_time_msec,
+                    'status': status,
+                    'source': str(item.get('source') or 'manual'),
+                    'raw': str(item.get('raw') or ''),
+                }
+                if status == 'assigned' and item.get('bib') is not None:
+                    try:
+                        restored_item['bib'] = int(item['bib'])
+                    except (TypeError, ValueError):
+                        pass
+                self.pending_manual_finishes.append(restored_item)
 
             from sportorg.models.tourism import ensure_tourism_defaults
             ensure_tourism_defaults(self)

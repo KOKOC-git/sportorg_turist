@@ -1801,3 +1801,16 @@ msgstr "Source"
 
 msgid "Raw signal"
 msgstr "Raw signal"
+msgid "Finish arrival order"
+msgstr "Finish arrival order"
+
+msgid "Arrival order"
+msgstr "Arrival order"
+
+msgid "Assigned"
+msgstr "Assigned"
+
+msgid "Waiting for bib"
+msgstr "Waiting for bib"
+msgid "Assign or correct"
+msgstr "Assign or correct"

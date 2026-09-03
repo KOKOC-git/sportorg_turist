@@ -2021,3 +2021,16 @@ msgstr "Источник"
 
 msgid "Raw signal"
 msgstr "Исходный сигнал"
+msgid "Finish arrival order"
+msgstr "Порядок прихода участников"
+
+msgid "Arrival order"
+msgstr "Порядок прихода"
+
+msgid "Assigned"
+msgstr "Назначен"
+
+msgid "Waiting for bib"
+msgstr "Ожидает номер"
+msgid "Assign or correct"
+msgstr "Назначить или исправить"
