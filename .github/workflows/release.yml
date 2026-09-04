@@ -28,8 +28,6 @@ jobs:
         run: poetry run poe generate-mo
       - name: Build
         run: poetry run python builder.py build
-      - name: Generate MSI installer
-        run: poetry run python builder.py bdist_msi
       - name: Generate EXE installer
         shell: pwsh
         run: |
@@ -45,6 +43,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Inno Setup failed with exit code $LASTEXITCODE"
           }
+      - name: Generate legacy MSI installer
+        continue-on-error: true
+        run: poetry run python builder.py bdist_msi
       - name: Upload the artifact
         uses: actions/upload-artifact@v4
         with:
