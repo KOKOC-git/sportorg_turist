@@ -339,7 +339,7 @@ class Group(Model):
         return getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
 
     def is_tourism(self):
-        return self.get_competition_type() == CompetitionType.TOURISM.value
+        return is_tourism_competition_type(self.get_competition_type())
 
     def to_dict(self):
         return {
@@ -940,7 +940,9 @@ class Result:
 
         tourism_stage_dsq_count = getattr(self, 'tourism_stage_dsq_count', 0)
         if (
-            getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
+            is_tourism_competition_type(
+                getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
+            )
             and tourism_stage_dsq_count
         ):
             suffix = f" [DSQe:{tourism_stage_dsq_count}]"

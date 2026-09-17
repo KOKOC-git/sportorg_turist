@@ -1,3 +1,4 @@
+import gzip
 import os
 import uuid
 
@@ -50,6 +51,21 @@ def load(file):
 
 
 def _read_json_bytes_with_fallback(file):
+    if hasattr(file, 'name'):
+        with open(file.name, 'rb') as binary_file:
+            raw = binary_file.read()
+
+        if raw.startswith(b'\x1f\x8b'):
+            raw = gzip.decompress(raw)
+
+        for encoding in ('utf-8-sig', 'utf-8', 'cp1251', 'windows-1251'):
+            try:
+                return raw.decode(encoding).encode('utf-8')
+            except UnicodeDecodeError:
+                continue
+
+        return raw.decode('cp1251', errors='replace').encode('utf-8')
+
     try:
         content = file.read()
     except UnicodeDecodeError:

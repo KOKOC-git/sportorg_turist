@@ -1,4 +1,5 @@
 import sys
+from importlib.util import find_spec
 
 from cx_Freeze import Executable, setup
 
@@ -19,17 +20,24 @@ include_files = [
     config.base_dir('configs'),
     config.STYLE_DIR,
 ]
-includes = ["atexit", "codecs", "playsound", "pyImpinj"]
+includes = ["atexit", "codecs"]
+for optional_module in ("playsound", "pyImpinj"):
+    if find_spec(optional_module) is not None:
+        includes.append(optional_module)
 excludes = ["Tkinter", "unittest", "test", "pydoc"]
+
+packages = ["idna", "requests", "encodings", "asyncio", "serial"]
+if sys.platform == 'win32':
+    packages.append("pywinusb")
 
 build_exe_options = {
     "includes": includes,
     "excludes": excludes,
-    "packages": ["idna", "requests", "encodings", "asyncio", "pywinusb", "serial"],
+    "packages": packages,
     "include_files": include_files,
     "zip_include_packages": ["PySide6"],
     "optimize": 2,
-    'include_msvcr': True,
+    'include_msvcr': sys.platform == 'win32',
     'silent': 1,
 }
 
@@ -59,7 +67,7 @@ options = {'build_exe': build_exe_options, 'bdist_msi': bdist_msi_options}
 
 executables = [
     Executable(
-        'SportOrg.pyw',
+        'SportOrg.pyw' if sys.platform == 'win32' else 'SportOrg.py',
         base=base,
         icon=config.icon_dir('sportorg.ico'),
         copyright='GNU GENERAL PUBLIC LICENSE {}'.format(config.NAME),

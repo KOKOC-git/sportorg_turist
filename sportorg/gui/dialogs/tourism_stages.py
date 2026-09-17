@@ -22,7 +22,11 @@ from sportorg.models.tourism import (
     CompetitionType,
     TourismCourse,
     TourismStage,
-    ensure_tourism_defaults, repair_tourism_data, repair_tourism_courses_from_stages, normalize_tourism_links,
+    ensure_tourism_defaults,
+    is_tourism_competition_type,
+    normalize_tourism_links,
+    repair_tourism_courses_from_stages,
+    repair_tourism_data,
 )
 
 
@@ -221,7 +225,7 @@ class TourismStagesDialog(QDialog):
                 else getattr(group, 'competition_type', None)
             ) or getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
 
-            if group_type != CompetitionType.TOURISM.value:
+            if not is_tourism_competition_type(group_type):
                 continue
 
             checkbox = QCheckBox(group.name)

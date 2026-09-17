@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+{% block title %}Протокол судьи на этапе{% endblock %}
+{% block head %}{{ super() }}{% endblock %}
+
+{% block content %}
+<div class="judge-controls no-print">
+    <h3>Подготовка протокола судьи</h3>
+    <div class="judge-controls-grid">
+        <label>Этап
+            <select id="stage-select"></select>
+        </label>
+        <label>Название соревнования
+            <input id="event-title" type="text">
+        </label>
+        <label>Дата
+            <input id="event-date" type="text">
+        </label>
+        <label>Место проведения
+            <input id="event-location" type="text">
+        </label>
+        <label>Судья этапа
+            <input id="stage-judge" type="text">
+        </label>
+        <label>Секретарь этапа
+            <input id="stage-secretary" type="text">
+        </label>
+        <label>Запасных пустых строк
+            <input id="extra-rows" type="number" min="0" max="30" value="3">
+        </label>
+    </div>
+    <div class="judge-actions">
+        <button type="button" id="refresh-protocol">Обновить протокол</button>
+        <button type="button" id="print-protocol">Печать</button>
+    </div>
+</div>
+
+<div id="judge-protocols"></div>
+
+{% raw %}
+<style>
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    .judge-controls {
+        margin-bottom: 18px;
+        padding: 12px;
+        border: 1px solid #aaa;
+        background: #f7f7f7;
+    }
+
+    .judge-controls h3 {
+        margin: 0 0 10px;
+    }
+
+    .judge-controls-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: 8px 12px;
+    }
+
+    .judge-controls label {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 13px;
+    }
+
+    .judge-controls input,
+    .judge-controls select {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 5px;
+    }
+
+    .judge-actions {
+        margin-top: 10px;
+    }
+
+    .judge-actions button {
+        margin-right: 8px;
+        padding: 6px 18px;
+    }
+
+    .judge-sheet {
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .judge-sheet:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .judge-header {
+        margin-bottom: 8px;
+        text-align: center;
+    }
+
+    .judge-header h2,
+    .judge-header h3 {
+        margin: 2px 0;
+    }
+
+    .judge-header-details {
+        margin-top: 4px;
+        font-size: 12px;
+    }
+
+    .judge-stage-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 24px;
+        margin: 8px 0;
+        font-size: 12px;
+    }
+
+    .judge-line {
+        display: inline-block;
+        min-width: 210px;
+        min-height: 16px;
+        border-bottom: 1px solid #222;
+        text-align: left;
+    }
+
+    .judge-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .judge-table th,
+    .judge-table td {
+        border: 1px solid #111;
+        padding: 3px 4px;
+        font-size: 10px;
+        vertical-align: middle;
+    }
+
+    .judge-table th {
+        text-align: center;
+    }
+
+    .judge-table tbody td {
+        height: 29px;
+    }
+
+    .judge-table .col-order { width: 4%; text-align: center; }
+    .judge-table .col-bib { width: 6%; text-align: center; }
+    .judge-table .col-person { width: 18%; }
+    .judge-table .col-group { width: 12%; }
+    .judge-table .col-passage { width: 13%; }
+    .judge-table .col-time { width: 10%; }
+    .judge-table .col-penalty { width: 12%; }
+    .judge-table .col-dsq { width: 8%; }
+    .judge-table .col-comment { width: 17%; }
+
+    .judge-signatures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 36px;
+        margin-top: 16px;
+        font-size: 12px;
+    }
+
+    .judge-signature-line {
+        display: inline-block;
+        width: 70%;
+        border-bottom: 1px solid #222;
+    }
+
+    @media print {
+        .no-print,
+        #footer {
+            display: none !important;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        .judge-sheet {
+            margin: 0;
+        }
+
+        .judge-table tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+<script>
+    var race = {% endraw %}{{ race|tojson }}{% raw %};
+    racePreparation(race);
+
+    function safeText(value) {
+        return value === null || value === undefined ? '' : String(value);
+    }
+
+    function formatDate(value) {
+        var match = safeText(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return match ? match[3] + '.' + match[2] + '.' + match[1] : safeText(value);
+    }
+
+    function byId(items, id) {
+        id = safeText(id);
+        for (var i = 0; i < (items || []).length; i++) {
+            if (safeText(items[i].id) === id) return items[i];
+        }
+        return null;
+    }
+
+    function stageTitle(stage) {
+        var number = Number(stage.order_num || 0);
+        return (number ? number + '. ' : '') + (stage.name || 'Этап');
+    }
+
+    function courseForStage(stage) {
+        return byId(race.tourism_courses || [], stage.tourism_course_id);
+    }
+
+    function personFitsStage(person, stage) {
+        var course = courseForStage(stage);
+        if (!course || !(course.group_ids || []).length) return true;
+        return course.group_ids.map(String).indexOf(safeText(person.group_id)) !== -1;
+    }
+
+    function personName(person) {
+        return [person.surname, person.name].filter(Boolean).join(' ');
+    }
+
+    function personGroup(person) {
+        var group = byId(race.groups || [], person.group_id);
+        var organization = byId(race.organizations || [], person.organization_id);
+        var values = [];
+        if (group && group.name) values.push(group.name);
+        if (organization && organization.name) values.push(organization.name);
+        return values.join(' / ');
+    }
+
+    function getParticipants(stage) {
+        return (race.persons || []).filter(function (person) {
+            return personFitsStage(person, stage);
+        }).sort(function (a, b) {
+            return Number(a.bib || 0) - Number(b.bib || 0);
+        });
+    }
+
+    function createCell(tag, text, className) {
+        var cell = document.createElement(tag);
+        cell.className = className || '';
+        cell.textContent = safeText(text);
+        return cell;
+    }
+
+    function addProtocolRow(tbody, number, person) {
+        var row = document.createElement('tr');
+        row.appendChild(createCell('td', number, 'col-order'));
+        row.appendChild(createCell('td', person ? person.bib : '', 'col-bib'));
+        row.appendChild(createCell('td', person ? personName(person) : '', 'col-person'));
+        row.appendChild(createCell('td', person ? personGroup(person) : '', 'col-group'));
+        row.appendChild(createCell('td', '', 'col-passage'));
+        row.appendChild(createCell('td', '', 'col-time'));
+        row.appendChild(createCell('td', '', 'col-penalty'));
+        row.appendChild(createCell('td', '', 'col-dsq'));
+        row.appendChild(createCell('td', '', 'col-comment'));
+        tbody.appendChild(row);
+    }
+
+    function fieldValue(id) {
+        return document.getElementById(id).value.trim();
+    }
+
+    function buildSheet(stage) {
+        var sheet = document.createElement('section');
+        sheet.className = 'judge-sheet';
+        var course = courseForStage(stage);
+
+        var header = document.createElement('div');
+        header.className = 'judge-header';
+        var eventTitle = document.createElement('h3');
+        eventTitle.textContent = fieldValue('event-title');
+        header.appendChild(eventTitle);
+        var protocolTitle = document.createElement('h2');
+        protocolTitle.textContent = 'ПРОТОКОЛ СУДЬИ НА ЭТАПЕ';
+        header.appendChild(protocolTitle);
+        var stageName = document.createElement('h3');
+        stageName.textContent = stageTitle(stage);
+        header.appendChild(stageName);
+        var details = document.createElement('div');
+        details.className = 'judge-header-details';
+        details.textContent = [fieldValue('event-date'), fieldValue('event-location')]
+            .filter(Boolean).join(', ');
+        header.appendChild(details);
+        sheet.appendChild(header);
+
+        var meta = document.createElement('div');
+        meta.className = 'judge-stage-meta';
+        meta.innerHTML = '<div>Дистанция: <span class="judge-line"></span></div>' +
+            '<div>Этап открыт: <span class="judge-line"></span></div>' +
+            '<div>Категория / группа: <span class="judge-line"></span></div>' +
+            '<div>Этап закрыт: <span class="judge-line"></span></div>';
+        var lines = meta.querySelectorAll('.judge-line');
+        if (course && lines.length) lines[0].textContent = course.name || '';
+        sheet.appendChild(meta);
+
+        var table = document.createElement('table');
+        table.className = 'judge-table';
+        var thead = document.createElement('thead');
+        var headRow = document.createElement('tr');
+        [
+            ['№ п/п', 'col-order'], ['№ участника', 'col-bib'],
+            ['Участник', 'col-person'], ['Группа / коллектив', 'col-group'],
+            ['Прохождение этапа', 'col-passage'], ['Время', 'col-time'],
+            ['Штраф (время / баллы)', 'col-penalty'], ['Снят', 'col-dsq'],
+            ['Примечание', 'col-comment']
+        ].forEach(function (item) {
+            headRow.appendChild(createCell('th', item[0], item[1]));
+        });
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        var tbody = document.createElement('tbody');
+        var participants = getParticipants(stage);
+        for (var i = 0; i < participants.length; i++) {
+            addProtocolRow(tbody, i + 1, participants[i]);
+        }
+        var extraRows = Math.max(0, Math.min(30, Number(document.getElementById('extra-rows').value || 0)));
+        for (var j = 0; j < extraRows; j++) {
+            addProtocolRow(tbody, participants.length + j + 1, null);
+        }
+        table.appendChild(tbody);
+        sheet.appendChild(table);
+
+        var signatures = document.createElement('div');
+        signatures.className = 'judge-signatures';
+        signatures.innerHTML = '<div>Судья этапа: <span class="judge-signature-line"></span></div>' +
+            '<div>Секретарь этапа: <span class="judge-signature-line"></span></div>';
+        var signatureLines = signatures.querySelectorAll('.judge-signature-line');
+        signatureLines[0].textContent = fieldValue('stage-judge');
+        signatureLines[1].textContent = fieldValue('stage-secretary');
+        sheet.appendChild(signatures);
+        return sheet;
+    }
+
+    function selectedStages() {
+        if (!(race.tourism_stages || []).length) {
+            return [{id: 'manual-stage', name: 'Этап', order_num: 0, tourism_course_id: ''}];
+        }
+        var selected = document.getElementById('stage-select').value;
+        if (selected === 'all') return race.tourism_stages || [];
+        return (race.tourism_stages || []).filter(function (stage) {
+            return safeText(stage.id) === selected;
+        });
+    }
+
+    function renderProtocols() {
+        var root = document.getElementById('judge-protocols');
+        root.textContent = '';
+        var stages = selectedStages();
+        if (!stages.length) {
+            root.textContent = 'Этапы не настроены. Сначала добавьте этапы дистанции.';
+            return;
+        }
+        stages.forEach(function (stage) { root.appendChild(buildSheet(stage)); });
+    }
+
+    function initialize() {
+        var data = race.data || {};
+        document.getElementById('event-title').value = data.title || data.description || '';
+        document.getElementById('event-date').value = formatDate(data.start_datetime);
+        document.getElementById('event-location').value = data.location || '';
+        document.getElementById('stage-judge').value = '';
+        document.getElementById('stage-secretary').value = data.secretary || '';
+
+        var select = document.getElementById('stage-select');
+        if (!(race.tourism_stages || []).length) {
+            var manualOption = document.createElement('option');
+            manualOption.value = 'manual-stage';
+            manualOption.textContent = 'Этап — заполнить название вручную';
+            select.appendChild(manualOption);
+        }
+        var allOption = document.createElement('option');
+        allOption.value = 'all';
+        allOption.textContent = 'Все этапы — каждый с нового листа';
+        if ((race.tourism_stages || []).length) select.appendChild(allOption);
+        (race.tourism_stages || []).slice().sort(function (a, b) {
+            return Number(a.order_num || 0) - Number(b.order_num || 0);
+        }).forEach(function (stage) {
+            var option = document.createElement('option');
+            option.value = safeText(stage.id);
+            option.textContent = stageTitle(stage);
+            select.appendChild(option);
+        });
+
+        document.getElementById('refresh-protocol').addEventListener('click', renderProtocols);
+        document.getElementById('print-protocol').addEventListener('click', function () {
+            renderProtocols();
+            window.print();
+        });
+        select.addEventListener('change', renderProtocols);
+        renderProtocols();
+    }
+
+    initialize();
+</script>
+{% endraw %}
+{% endblock %}

@@ -14,7 +14,12 @@ from sportorg.gui.global_access import GlobalAccess
 from sportorg.language import translate
 from sportorg.models.constant import get_race_courses
 from sportorg.models.memory import Limit, RaceType, find, race
-from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults, normalize_tourism_links, ensure_tourism_defaults
+from sportorg.models.tourism import (
+    CompetitionType,
+    ensure_tourism_defaults,
+    is_tourism_competition_type,
+    normalize_tourism_links,
+)
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.modules.live.live import live_client
 from sportorg.modules.teamwork.teamwork import Teamwork
@@ -169,9 +174,11 @@ class GroupEditDialog(BaseDialog):
         group = self.current_object
 
         try:
-            return group.get_competition_type() == CompetitionType.TOURISM.value
+            return is_tourism_competition_type(group.get_competition_type())
         except Exception:
-            return getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
+            return is_tourism_competition_type(
+                getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
+            )
 
     def update_tourism_fields_visibility(self):
         is_tourism = self._is_tourism_mode()
@@ -313,7 +320,9 @@ class GroupEditDialog(BaseDialog):
 
         # Если группа наследует тип от события, а событие само Туризм — тоже показываем поле.
         if current_text == translate('Inherit from event'):
-            is_tourism = getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value) == CompetitionType.TOURISM.value
+            is_tourism = is_tourism_competition_type(
+                getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
+            )
 
         self.fields['tourism_course'].q_item.setEnabled(is_tourism)
 

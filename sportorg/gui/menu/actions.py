@@ -57,7 +57,11 @@ from sportorg.gui.utils.custom_controls import messageBoxQuestion
 from sportorg.language import translate
 from sportorg.libs.winorient.wdb import write_wdb
 from sportorg.models.memory import ResultStatus, race
-from sportorg.models.tourism import CompetitionType, ensure_tourism_defaults
+from sportorg.models.tourism import (
+    CompetitionType,
+    ensure_tourism_defaults,
+    is_tourism_competition_type,
+)
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.services.tourism_result_calculation import TourismResultCalculator
 from sportorg.models.result.result_calculation import ResultCalculation
@@ -951,7 +955,9 @@ class TourismStagesAction(Action, metaclass=ActionFactory):
         obj = race()
         ensure_tourism_defaults(obj)
 
-        if getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) != CompetitionType.TOURISM.value:
+        if not is_tourism_competition_type(
+            getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value)
+        ):
             mes = QMessageBox()
             mes.setText(translate('This function is available only for Tourism competition type'))
             mes.exec_()
@@ -966,7 +972,9 @@ class TourismPenaltiesAction(Action, metaclass=ActionFactory):
         obj = race()
         ensure_tourism_defaults(obj)
 
-        if getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) != CompetitionType.TOURISM.value:
+        if not is_tourism_competition_type(
+            getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value)
+        ):
             mes = QMessageBox()
             mes.setText(translate('This function is available only for Tourism competition type'))
             mes.exec_()
@@ -989,7 +997,9 @@ class TourismStagePenaltiesAction(Action, metaclass=ActionFactory):
         obj = race()
         ensure_tourism_defaults(obj)
 
-        if getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value) != CompetitionType.TOURISM.value:
+        if not is_tourism_competition_type(
+            getattr(obj, 'competition_type', CompetitionType.INDIVIDUAL.value)
+        ):
             mes = QMessageBox()
             mes.setText(translate('This function is available only for Tourism competition type'))
             mes.exec_()

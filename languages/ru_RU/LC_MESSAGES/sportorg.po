@@ -2034,3 +2034,9 @@ msgid "Waiting for bib"
 msgstr "Ожидает номер"
 msgid "Assign or correct"
 msgstr "Назначить или исправить"
+
+msgid "Chip contents"
+msgstr "Содержимое чипа"
+
+msgid "One punch per line: station number, punch time"
+msgstr "Одна отметка в строке: номер станции и время отметки"

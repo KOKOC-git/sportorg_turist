@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -65,7 +66,6 @@ class TourismStagePenaltiesDialog(QDialog):
         self.btn_close.clicked.connect(self.accept)
 
         self.load_stages()
-        self.load_stage_persons()
 
     def _build_top(self):
         top = QHBoxLayout()
@@ -99,6 +99,14 @@ class TourismStagePenaltiesDialog(QDialog):
             'Отсечка',
             'Снятие с этапа',
         ])
+        self.table.verticalHeader().setVisible(False)
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
+        for column in (4, 5, 6, 7):
+            header.setSectionResizeMode(column, QHeaderView.ResizeToContents)
         self.layout.addWidget(self.table)
 
     def _build_buttons(self):
@@ -177,6 +185,9 @@ class TourismStagePenaltiesDialog(QDialog):
             self.stage_combo.addItem(title, str(stage.id))
             self.stage_ids.append(str(stage.id))
 
+        if not stages:
+            self.load_stage_persons()
+
     def _current_stage(self):
         stage_id = self.stage_combo.currentData()
         if not stage_id:
@@ -200,6 +211,14 @@ class TourismStagePenaltiesDialog(QDialog):
         for person in getattr(race(), 'persons', []):
             group = getattr(person, 'group', None)
             if not group:
+                if not group_ids and is_tourism_competition_type(
+                    getattr(
+                        race(),
+                        'competition_type',
+                        CompetitionType.INDIVIDUAL.value,
+                    )
+                ):
+                    persons.append(person)
                 continue
 
             if not self._is_tourism_group(group):
@@ -230,7 +249,32 @@ class TourismStagePenaltiesDialog(QDialog):
 
         return None
 
+    def _clear_table(self):
+        for row in range(self.table.rowCount()):
+            for column in range(self.table.columnCount()):
+                widget = self.table.cellWidget(row, column)
+                if widget is not None:
+                    self.table.removeCellWidget(row, column)
+                    widget.deleteLater()
+        self.table.clearContents()
+        self.table.setRowCount(0)
+
+    def _configure_identity_columns(self, persons):
+        has_groups = any(getattr(person, 'group', None) for person in persons)
+        self.table.setColumnHidden(2, not has_groups)
+
+        team_names = [self._person_team_name(person).strip() for person in persons]
+        is_group_competition = getattr(
+            race(), 'competition_type', CompetitionType.INDIVIDUAL.value
+        ) == 'tourism_group'
+        team_is_useful = not is_group_competition and any(team_names) and any(
+            team_name != str(getattr(person, 'full_name', '') or '').strip()
+            for person, team_name in zip(persons, team_names)
+        )
+        self.table.setColumnHidden(3, not team_is_useful)
+
     def load_stage_persons(self):
+        self._clear_table()
         stage = self._current_stage()
 
         if not stage:
@@ -243,6 +287,7 @@ class TourismStagePenaltiesDialog(QDialog):
         self.person_ids = [str(person.id) for person in persons]
 
         self.table.setRowCount(len(persons))
+        self._configure_identity_columns(persons)
 
         mode = getattr(race(), 'tourism_judging_mode', TourismJudgingMode.PENALTY.value)
         is_penalty_mode = mode == TourismJudgingMode.PENALTY.value
@@ -309,7 +354,6 @@ class TourismStagePenaltiesDialog(QDialog):
             self.table.setCellWidget(row, 7, stage_dsq)
 
         self.info_label.setText(f'Участников: {len(persons)}')
-        self.table.resizeColumnsToContents()
 
     def _row_values(self, row):
         penalty_time_widget = self.table.cellWidget(row, 4)

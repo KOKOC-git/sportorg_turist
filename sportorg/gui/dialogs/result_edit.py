@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QLabel,
     QLineEdit,
+    QPushButton,
     QScrollArea,
     QTextEdit,
     QVBoxLayout,
@@ -102,6 +103,9 @@ class ResultEditDialog(QDialog):
 
         more24 = race().get_setting('time_format_24', 'less24') == 'more24'
         self.splits = SplitsText(more24=more24)
+        self.button_chip_contents = QPushButton()
+        self.button_chip_contents.clicked.connect(self.open_chip_contents)
+        self.update_chip_contents_button()
 
         form_layout.addRow(QLabel(translate('Created at')), self.item_created_at)
         if self.current_object.is_punch():
@@ -126,7 +130,9 @@ class ResultEditDialog(QDialog):
                 self.item_start.setDisabled(True)
             if finish_source == 'cp':
                 self.item_finish.setDisabled(True)
-            form_layout.addRow(self.splits.widget)
+        form_layout.addRow(
+            QLabel(translate('Chip contents')), self.button_chip_contents
+        )
 
         scroll_area.setWidget(content_widget)
         scroll_area.setWidgetResizable(True)
@@ -184,8 +190,9 @@ class ResultEditDialog(QDialog):
         if self.current_object.is_punch():
             if self.current_object.card_number:
                 self.item_card_number.setValue(int(self.current_object.card_number))
-            self.splits.splits(self.current_object.splits)
-            self.splits.show()
+        self.splits.splits(self.current_object.splits)
+        self.splits.show()
+        self.update_chip_contents_button()
         if self.current_object.created_at:
             self.item_created_at.setOTime(
                 datetime.fromtimestamp(self.current_object.created_at)
@@ -218,21 +225,37 @@ class ResultEditDialog(QDialog):
         except Exception as e:
             logging.error(str(e))
 
+    def open_chip_contents(self):
+        dialog = ChipContentsEditDialog(
+            self.splits.splits(),
+            more24=self.splits.more24,
+            parent=self,
+        )
+        if dialog.exec_() == QDialog.Accepted:
+            self.splits.splits(dialog.splits())
+            self.splits.show()
+            self.update_chip_contents_button()
+
+    def update_chip_contents_button(self):
+        split_count = len(self.splits.splits() or [])
+        self.button_chip_contents.setText(
+            '{} ({})'.format(translate('Edit'), split_count)
+        )
+
     def apply_changes_impl(self):
         result = self.current_object
         if self.is_new:
             race().results.insert(0, result)
 
-        if result.is_punch():
-            if result.card_number != self.item_card_number.value():
-                result.card_number = self.item_card_number.value()
+        if result.is_punch() and result.card_number != self.item_card_number.value():
+            result.card_number = self.item_card_number.value()
 
-            new_splits = self.splits.splits()
-            if len(result.splits) == len(new_splits):
-                for i, split in enumerate(result.splits):
-                    if split != new_splits[i]:
-                        break
-            result.splits = new_splits
+        new_splits = self.splits.splits()
+        if len(result.splits) == len(new_splits):
+            for i, split in enumerate(result.splits):
+                if split != new_splits[i]:
+                    break
+        result.splits = new_splits
 
         time_ = self.item_finish.getOTime()
         if result.finish_time != time_:
@@ -329,6 +352,10 @@ class SplitsText(SplitsObject):
     def widget(self):
         return self._box
 
+    @property
+    def more24(self):
+        return self._more24
+
     def splits(self, splits=None):
         if splits is None:
             text_row = self._text.toPlainText().split('\n')
@@ -368,3 +395,37 @@ class SplitsText(SplitsObject):
     @staticmethod
     def _get_example_text():
         return '31 12:45:00\n32 12:46:32\n33 12:49:12\n...'
+
+
+class ChipContentsEditDialog(QDialog):
+    def __init__(self, splits, more24=False, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(translate('Chip contents'))
+        self.setWindowIcon(QIcon(config.ICON))
+        self.setModal(True)
+        self.resize(520, 520)
+
+        layout = QVBoxLayout(self)
+        description = QLabel(
+            translate(
+                'One punch per line: station number, punch time'
+            )
+        )
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        self.splits_editor = SplitsText(splits=splits, more24=more24)
+        self.splits_editor.show()
+        layout.addWidget(self.splits_editor.widget)
+
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        button_box.button(QDialogButtonBox.Ok).setText(translate('OK'))
+        button_box.button(QDialogButtonBox.Cancel).setText(translate('Cancel'))
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+    def splits(self):
+        return self.splits_editor.splits()

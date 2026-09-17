@@ -1814,3 +1814,9 @@ msgid "Waiting for bib"
 msgstr "Waiting for bib"
 msgid "Assign or correct"
 msgstr "Assign or correct"
+
+msgid "Chip contents"
+msgstr "Chip contents"
+
+msgid "One punch per line: station number, punch time"
+msgstr "One punch per line: station number, punch time"

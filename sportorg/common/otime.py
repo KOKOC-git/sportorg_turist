@@ -50,7 +50,7 @@ class OTime:
         return self._args
 
     def __eq__(self, other):
-        if not other:
+        if not isinstance(other, OTime):
             return False
         return self.to_msec() == other.to_msec()
 

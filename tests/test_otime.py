@@ -42,6 +42,14 @@ def test_otime_eq():
     assert otime1 == otime2
 
 
+def test_otime_comparison_with_none():
+    time = OTime(0, 0, 25, 44)
+    empty_time = None
+
+    assert time != empty_time
+    assert not time == empty_time
+
+
 def test_otime_sum():
     otime1 = OTime(0, 0, 25, 40)
     otime2 = OTime(0, 0, 25, 20)

@@ -162,8 +162,17 @@ class TourismPenaltiesDialog(QDialog):
         return None
 
     def _is_tourism_person(self, person):
-        if not person or not person.group:
+        if not person:
             return False
+
+        if not person.group:
+            return is_tourism_competition_type(
+                getattr(
+                    race(),
+                    'competition_type',
+                    CompetitionType.INDIVIDUAL.value,
+                )
+            )
 
         group_type = (
             person.group.get_competition_type()
@@ -211,11 +220,17 @@ class TourismPenaltiesDialog(QDialog):
 
     def load_stage_table(self):
         person = self.current_person
-        if not person or not person.group:
+        if not person:
             self.load_empty_table()
             return
 
-        stages = get_tourism_stages_for_group(race(), str(person.group.id))
+        if person.group:
+            stages = get_tourism_stages_for_group(race(), str(person.group.id))
+        else:
+            stages = sorted(
+                getattr(race(), 'tourism_stages', []),
+                key=lambda stage: int(getattr(stage, 'order_num', 0) or 0),
+            )
 
         self.stage_ids = [str(stage.id) for stage in stages]
         self.table.setRowCount(len(stages))

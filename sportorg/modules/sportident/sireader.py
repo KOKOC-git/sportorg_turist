@@ -8,6 +8,7 @@ from queue import Empty, Queue
 from threading import Event, main_thread
 
 import serial
+from serial.tools import list_ports
 from PySide6.QtCore import QThread, Signal
 from sportident import (
     SIReader,
@@ -269,6 +270,13 @@ class SIReaderClient:
             ]
         elif platform.system() == 'Windows':
             scan_ports = ['COM' + str(i) for i in range(48)]
+        elif platform.system() == 'Darwin':
+            scan_ports = [
+                port.device
+                for port in list_ports.comports()
+                if port.device.startswith('/dev/cu.')
+                and port.vid is not None
+            ]
 
         for p in scan_ports:
             try:

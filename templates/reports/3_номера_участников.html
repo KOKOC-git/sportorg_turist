@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Номера участников{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    :root { --cards-per-page: 4; }
+    body { background: #f1f3f5; }
+    #content { max-width: none; }
+    .bib-toolbar {
+        position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap;
+        gap: 12px; align-items: center; padding: 12px 16px; background: white;
+        border-bottom: 1px solid #bbb; box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    .bib-toolbar label { display: flex; gap: 6px; align-items: center; margin: 0; }
+    .bib-toolbar button, .bib-toolbar select {
+        min-height: 34px; padding: 5px 10px; font-size: 14px;
+    }
+    .bib-pages { width: 297mm; margin: 12px auto; }
+    .bib-page {
+        box-sizing: border-box; width: 297mm; height: 210mm; padding: 8mm;
+        display: grid; gap: 6mm; background: white; page-break-after: always;
+        box-shadow: 0 2px 12px rgba(0,0,0,.18);
+    }
+    .bib-page:last-child { page-break-after: auto; }
+    .layout-1 .bib-page { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+    .layout-2 .bib-page { grid-template-columns: 1fr; grid-template-rows: repeat(2, 1fr); }
+    .layout-4 .bib-page { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
+    .bib-card {
+        box-sizing: border-box; overflow: hidden; border: 1.2mm solid #111;
+        display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+        padding: 5mm; text-align: center; break-inside: avoid;
+    }
+    .bib-event { width: 100%; min-height: 1.3em; font-size: 5mm; font-weight: 700; line-height: 1.15; }
+    .bib-number { font-size: 34mm; font-weight: 900; line-height: .88; letter-spacing: -1.5mm; }
+    .layout-1 .bib-number { font-size: 82mm; }
+    .layout-2 .bib-number { font-size: 42mm; }
+    .bib-person { width: 100%; min-height: 1.2em; font-size: 5.5mm; font-weight: 700; line-height: 1.12; }
+    .bib-meta { width: 100%; min-height: 1.2em; font-size: 4mm; line-height: 1.15; }
+    .bib-start { font-size: 4mm; font-weight: 700; }
+    .is-hidden { display: none !important; }
+    [contenteditable="true"]:focus { outline: 2px solid #2684ff; background: #eef6ff; }
+    #footer { display: none; }
+
+    @page { size: A4 landscape; margin: 0; }
+    @media print {
+        html, body { margin: 0; padding: 0; background: white; }
+        .bib-toolbar { display: none !important; }
+        .bib-pages { width: auto; margin: 0; }
+        .bib-page { margin: 0; box-shadow: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bib-toolbar">
+    <label>На листе
+        <select id="cards-per-page">
+            <option value="1">1 номер</option>
+            <option value="2">2 номера</option>
+            <option value="4" selected>4 номера</option>
+        </select>
+    </label>
+    <label><input id="show-name" type="checkbox" checked> ФИО</label>
+    <label><input id="show-organization" type="checkbox" checked> Команда</label>
+    <label><input id="show-group" type="checkbox" checked> Группа</label>
+    <label><input id="show-start" type="checkbox"> Время старта</label>
+    <button type="button" onclick="window.print()">Печать</button>
+    <span>Текст на номерах можно исправлять прямо перед печатью.</span>
+</div>
+<div id="bib-pages" class="bib-pages layout-4"></div>
+
+{% raw %}
+<script>
+    var race = {% endraw %}{{ race|tojson }}{% raw %};
+    racePreparation(race);
+
+    function text(value) {
+        return value === undefined || value === null ? '' : String(value);
+    }
+
+    function participantRows() {
+        return (race.persons || []).filter(function (person) {
+            return Number(person.bib || 0) > 0;
+        }).sort(function (a, b) {
+            return Number(a.bib || 0) - Number(b.bib || 0);
+        });
+    }
+
+    function editable(className, value) {
+        var node = document.createElement('div');
+        node.className = className;
+        node.contentEditable = 'true';
+        node.textContent = text(value);
+        return node;
+    }
+
+    function createCard(person) {
+        var card = document.createElement('section');
+        card.className = 'bib-card';
+        var eventName = race.data && race.data.description ? race.data.description : 'СОРЕВНОВАНИЯ ПО ТУРИЗМУ';
+        card.appendChild(editable('bib-event', eventName));
+        card.appendChild(editable('bib-number', person.bib));
+        card.appendChild(editable('bib-person optional-name', (text(person.surname) + ' ' + text(person.name)).trim()));
+
+        var organization = person.organization ? person.organization.name : '';
+        card.appendChild(editable('bib-meta optional-organization', organization));
+        var group = person.group ? person.group.name : '';
+        card.appendChild(editable('bib-meta optional-group', group));
+        card.appendChild(editable('bib-start optional-start', person.start_time ? 'Старт: ' + toHHMMSS(person.start_time) : ''));
+        return card;
+    }
+
+    function toggleOptionalFields() {
+        var settings = [
+            ['show-name', 'optional-name'],
+            ['show-organization', 'optional-organization'],
+            ['show-group', 'optional-group'],
+            ['show-start', 'optional-start']
+        ];
+        settings.forEach(function (setting) {
+            var visible = document.getElementById(setting[0]).checked;
+            document.querySelectorAll('.' + setting[1]).forEach(function (node) {
+                node.classList.toggle('is-hidden', !visible);
+            });
+        });
+    }
+
+    function render() {
+        var count = Number(document.getElementById('cards-per-page').value);
+        var root = document.getElementById('bib-pages');
+        root.className = 'bib-pages layout-' + count;
+        root.innerHTML = '';
+        var persons = participantRows();
+        for (var i = 0; i < persons.length; i += count) {
+            var page = document.createElement('div');
+            page.className = 'bib-page';
+            persons.slice(i, i + count).forEach(function (person) {
+                page.appendChild(createCard(person));
+            });
+            root.appendChild(page);
+        }
+        toggleOptionalFields();
+    }
+
+    document.getElementById('cards-per-page').addEventListener('change', render);
+    ['show-name', 'show-organization', 'show-group', 'show-start'].forEach(function (id) {
+        document.getElementById(id).addEventListener('change', toggleOptionalFields);
+    });
+    render();
+</script>
+{% endraw %}
+{% endblock %}
+
+{% block footer %}{% endblock %}
