@@ -1,59 +1,112 @@
 {% extends "base.html" %}
-
+{% block title %}Командный протокол — туризм{% endblock %}
+{% block head %}{{ super() }}{% endblock %}
 {% block content %}
-<style>
-  .tourism-team-score-group {
-    margin-bottom: 32px;
-    page-break-after: always;
-  }
-
-  .tourism-team-score-group:last-child {
-    page-break-after: auto;
-  }
-
-  .tourism-protocol-title {
-    margin-bottom: 4px;
-  }
-
-  .tourism-protocol-subtitle {
-    margin-top: 0;
-    margin-bottom: 12px;
-    font-weight: bold;
-  }
-</style>
-
-<h2>Командный зачёт — Туризм</h2>
-
-{% set grouped_teams = teams|sort(attribute='group')|groupby('group') %}
-
-{% for group_name, group_teams in grouped_teams %}
-  <div class="tourism-team-score-group">
-    <h3 class="tourism-protocol-title">Командный зачёт</h3>
-    <div class="tourism-protocol-subtitle">Группа зачёта: {{ group_name or 'Без группы' }}</div>
-
-    <table class="sportorg-table">
-      <thead>
-        <tr>
-          <th>Место</th>
-          <th>Команда</th>
-          <th>Территория</th>
-          <th>Группа зачёта</th>
-          <th>Очки</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for row in group_teams %}
-        <tr>
-          <td>{{ row.place or '' }}</td>
-          <td>{{ row.team }}</td>
-          <td>{{ row.region }}</td>
-          <td>{{ row.group }}</td>
-          <td>{{ row.total_points }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+<details class="team-editor no-print" open>
+  <summary>Настройка командного протокола перед печатью</summary>
+  <div class="editor-grid">
+    <label>Название соревнования<input id="header-main-title" type="text"></label>
+    <label>Дата<input id="header-date" type="text"></label>
+    <label>Место проведения<input id="header-location" type="text"></label>
+    <label>Название протокола<input id="header-protocol-title" type="text" value="КОМАНДНЫЙ ПРОТОКОЛ — ТУРИЗМ"></label>
+    <label>Главный судья<input id="header-chief-referee" type="text"></label>
+    <label>Главный секретарь<input id="header-secretary" type="text"></label>
   </div>
-{% endfor %}
+</details>
+<div class="team-controls no-print">
+  <label><input id="show-unit-results" type="checkbox" checked> Результаты связок / групп</label>
+  <label><input id="show-details" type="checkbox" checked> Состав зачётных результатов</label>
+  <label>Ориентация <select id="print-orientation"><option value="landscape" selected>Альбомная</option><option value="portrait">Книжная</option></select></label>
+  <button id="print-protocol" type="button">Печать</button>
+</div>
 
+{% if tourism_team_units %}
+<section id="unit-results" class="protocol-section">
+  <div class="protocol-heading"><h3 class="protocol-main-title"></h3><div class="protocol-event-details"></div><h2>РЕЗУЛЬТАТЫ СВЯЗОК / ГРУПП</h2></div>
+  <table class="team-table unit-table">
+    <thead><tr><th>Место</th><th>№ команды</th><th>Участники</th><th>Возрастная группа</th><th>Коллектив</th><th>Результат</th><th>Статус</th><th>Очки</th><th>Примечание</th></tr></thead>
+    <tbody>{% for unit in tourism_team_units %}<tr>
+      <td contenteditable="true">{{ unit.place or '' }}</td><td contenteditable="true">{{ unit.number }}</td>
+      <td contenteditable="true" class="text-left">{{ unit.members_text }}</td><td contenteditable="true">{{ unit.group_name }}</td>
+      <td contenteditable="true" class="text-left">{{ unit.team_name }}</td><td contenteditable="true">{{ unit.result_text }}</td>
+      <td contenteditable="true">{{ unit.status_text }}</td><td contenteditable="true">{{ unit.tourism_scores }}</td>
+      <td contenteditable="true" class="text-left">{{ unit.warning_text }}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if tourism_standings %}
+  {% for group_name, rows in tourism_standings|groupby('group_name') %}
+  <section class="protocol-section standings-group">
+    <div class="protocol-heading"><h3 class="protocol-main-title"></h3><div class="protocol-event-details"></div><h2 class="protocol-title"></h2><div class="group-title" contenteditable="true">Возрастная категория: {{ group_name or 'Без группы' }}</div>
+      <div class="standings-rules" contenteditable="true">
+        В зачёт: {% if tourism_standings_rules.count_scores %}{{ tourism_standings_rules.count_scores }} лучших результатов{% else %}все результаты{% endif %};
+        из них женских — не менее {{ tourism_standings_rules.min_female_count or 0 }};
+        признак женской группы — «{{ tourism_standings_rules.female_prefix or 'Ж' }}».
+      </div>
+    </div>
+    <table class="team-table standings-table">
+      <thead><tr><th>Место</th><th>Коллектив</th><th>Очки</th><th>В зачёте</th><th class="details-column">Состав зачётных результатов</th></tr></thead>
+      <tbody>{% for row in rows %}<tr>
+        <td contenteditable="true">{{ row.place or '' }}</td><td contenteditable="true" class="text-left">{{ row.team_name }}</td>
+        <td contenteditable="true">{{ row.scores }}</td><td contenteditable="true">{{ row.unit_count }}</td>
+        <td contenteditable="true" class="text-left details-column">{{ row.details }}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+    <div class="protocol-signatures"><div class="chief-row"><span>Главный судья</span><span class="chief-referee"></span><span>________________</span></div><div class="secretary-row"><span>Главный секретарь</span><span class="secretary"></span><span>________________</span></div></div>
+  </section>
+  {% endfor %}
+{% else %}
+  <div class="empty-message">Нет данных для командного зачёта. Назначьте участникам коллективы и номера туристских команд, затем рассчитайте результаты.</div>
+{% endif %}
+
+{% if tourism_territorial_standings %}
+<section class="protocol-section territorial-standings">
+  <div class="protocol-heading">
+    <h3 class="protocol-main-title"></h3><div class="protocol-event-details"></div>
+    <h2>ТЕРРИТОРИАЛЬНЫЙ ЗАЧЁТ</h2>
+    <div class="group-title" contenteditable="true">Общий зачёт коллективов среди всех возрастных категорий</div>
+    <div class="standings-rules" contenteditable="true">
+      В зачёт: {% if tourism_standings_rules.count_scores %}{{ tourism_standings_rules.count_scores }} лучших результатов{% else %}все результаты{% endif %};
+      из них женских — не менее {{ tourism_standings_rules.min_female_count or 0 }};
+      признак женской группы — «{{ tourism_standings_rules.female_prefix or 'Ж' }}».
+    </div>
+  </div>
+  <table class="team-table standings-table">
+    <thead><tr><th>Место</th><th>Коллектив / территория</th><th>Очки</th><th>В зачёте</th><th class="details-column">Состав зачётных результатов</th></tr></thead>
+    <tbody>{% for row in tourism_territorial_standings %}<tr>
+      <td contenteditable="true">{{ row.place or '' }}</td><td contenteditable="true" class="text-left">{{ row.team_name }}</td>
+      <td contenteditable="true">{{ row.scores }}</td><td contenteditable="true">{{ row.unit_count }}</td>
+      <td contenteditable="true" class="text-left details-column">{{ row.details }}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  <div class="protocol-signatures"><div class="chief-row"><span>Главный судья</span><span class="chief-referee"></span><span>________________</span></div><div class="secretary-row"><span>Главный секретарь</span><span class="secretary"></span><span>________________</span></div></div>
+</section>
+{% endif %}
+
+{% raw %}
+<style id="page-style">@page { size: A4 landscape; margin: 8mm; }</style>
+<style>
+  .team-editor { margin:12px 0;padding:10px 12px;border:1px solid #bbb;border-radius:5px;background:#f7f7f7 }.team-editor summary{cursor:pointer;font-weight:bold}
+  .editor-grid{display:grid;grid-template-columns:repeat(3,minmax(210px,1fr));gap:9px 12px;margin-top:10px}.editor-grid label{display:flex;flex-direction:column;gap:3px;font-size:12px}.editor-grid input{box-sizing:border-box;width:100%;padding:5px 7px}
+  .team-controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:12px 0;padding:9px;border:1px solid #ccc;background:#f4f4f4}.team-controls select,.team-controls button{padding:4px 8px}
+  .protocol-section{page-break-before:auto!important;break-before:auto!important;margin:0 0 28px}.protocol-heading{text-align:center;margin-bottom:10px}.protocol-heading h2,.protocol-heading h3{margin:5px 0}.group-title{margin-top:7px;font-size:15px;font-weight:bold}.standings-rules{margin:6px auto 0;font-size:11px;font-weight:bold}
+  .team-table{display:table!important;box-sizing:border-box;width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse}.team-table th,.team-table td{box-sizing:border-box;max-width:0;border:1px solid #222;padding:4px;font-size:10px;line-height:1.15;text-align:center;vertical-align:middle;white-space:normal!important;overflow:hidden;overflow-wrap:anywhere!important;word-break:break-word}.team-table th{background:#eee;font-weight:bold}.team-table .text-left{text-align:left}
+  .unit-table th:nth-child(1),.unit-table th:nth-child(2),.unit-table th:nth-child(8){width:7%}.unit-table th:nth-child(3){width:24%}.unit-table th:nth-child(5){width:18%}.unit-table th:nth-child(9){width:12%}
+  .standings-table th:nth-child(1),.standings-table th:nth-child(3),.standings-table th:nth-child(4){width:9%}.standings-table th:nth-child(2){width:25%}.standings-table .details-column{width:48%}
+  td[contenteditable=true]:focus,.group-title:focus{outline:2px solid #2684ff;background:#eef6ff}.protocol-signatures{margin-top:20px;display:grid;gap:12px;break-inside:avoid}.protocol-signatures>div{display:grid;grid-template-columns:160px 1fr 140px;gap:12px}.empty-message{margin:20px 0;padding:18px;border:1px solid #bb8;background:#fffbe6}#footer{display:none}
+  @media print{html,body{margin:0;padding:0;width:100%}.protocol-section{page-break-after:always}.protocol-section:last-child{page-break-after:auto}.team-table{width:100%!important;max-width:100%!important}.team-table thead{display:table-header-group}.team-table tr{height:auto!important;break-inside:avoid;page-break-inside:avoid}.team-table th,.team-table td{height:auto!important;padding:2px 3px;font-size:8px;white-space:normal!important;overflow:hidden!important;overflow-wrap:anywhere!important}}
+  @media(max-width:800px){.editor-grid{grid-template-columns:1fr}}
+</style>
+<script>
+  var race={% endraw %}{{ race|tojson }}{% raw %};
+  function safe(v){return v===null||v===undefined?'':String(v)}function formatDate(v){var m=safe(v).match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'.'+m[2]+'.'+m[1]:safe(v)}
+  function setAll(c,v){document.querySelectorAll('.'+c).forEach(function(n){n.textContent=v||''})}
+  function updateHeader(){var d=document.getElementById('header-date').value.trim(),l=document.getElementById('header-location').value.trim();setAll('protocol-main-title',document.getElementById('header-main-title').value.trim());setAll('protocol-event-details',[d,l].filter(Boolean).join(', '));setAll('protocol-title',document.getElementById('header-protocol-title').value.trim());var c=document.getElementById('header-chief-referee').value.trim(),s=document.getElementById('header-secretary').value.trim();setAll('chief-referee',c);setAll('secretary',s);document.querySelectorAll('.chief-row').forEach(function(r){r.style.display=c?'':'none'});document.querySelectorAll('.secretary-row').forEach(function(r){r.style.display=s?'':'none'})}
+  function initialize(){var v={'header-main-title':safe(race.data.description||race.data.title),'header-date':formatDate(race.data.start_datetime),'header-location':safe(race.data.location),'header-chief-referee':safe(race.data.chief_referee),'header-secretary':safe(race.data.secretary)};Object.keys(v).forEach(function(id){var i=document.getElementById(id);i.value=v[id];i.addEventListener('input',updateHeader)});document.getElementById('header-protocol-title').addEventListener('input',updateHeader);document.getElementById('show-unit-results').addEventListener('change',function(){var b=document.getElementById('unit-results');if(b)b.style.display=this.checked?'':'none'});document.getElementById('show-details').addEventListener('change',function(){document.querySelectorAll('.details-column').forEach(function(c){c.style.display=document.getElementById('show-details').checked?'':'none'})});document.getElementById('print-orientation').addEventListener('change',function(){document.getElementById('page-style').textContent='@page { size: A4 '+this.value+'; margin: 8mm; }'});document.getElementById('print-protocol').addEventListener('click',function(){window.print()});updateHeader()}
+  initialize();
+</script>
+{% endraw %}
 {% endblock %}
+{% block footer %}{% endblock %}

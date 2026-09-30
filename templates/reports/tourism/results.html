@@ -49,7 +49,7 @@
     <label class="tourism-print-option">
         Этапов на листе
         <select id="print-stages-per-sheet">
-            <option value="0">Все</option>
+            <option value="0">Авто (по формату)</option>
             <option value="3">3</option>
             <option value="4" selected>4</option>
             <option value="5">5</option>
@@ -104,6 +104,32 @@
     .sportorg-table th {
         text-align: center;
         font-weight: bold;
+    }
+
+    .sportorg-table.tourism-group-results {
+        table-layout: auto;
+    }
+
+    .tourism-group-results .col-place,
+    .tourism-group-results .col-bib,
+    .tourism-group-results .col-time,
+    .tourism-group-results .col-penalty,
+    .tourism-group-results .col-result,
+    .tourism-group-results .col-status,
+    .tourism-group-results .col-scores { white-space: nowrap !important; }
+    .tourism-group-results .col-members,
+    .tourism-group-results .col-team {
+        text-align: left;
+        white-space: nowrap !important;
+        overflow-wrap: normal !important;
+        word-break: keep-all !important;
+        hyphens: none !important;
+        line-height: 1.15;
+    }
+    .tourism-group-results .stage-penalties-col {
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+        hyphens: none !important;
     }
 
     .text-center {
@@ -401,6 +427,14 @@
         return String(result.person.id || '');
     }
 
+    function getResultPersonIds(result) {
+        if (result && result._tourism_team_person_ids) {
+            return result._tourism_team_person_ids.map(String);
+        }
+        var personId = getResultPersonId(result);
+        return personId ? [personId] : [];
+    }
+
     function getStageName(stageId) {
         stageId = String(stageId || '');
 
@@ -510,22 +544,28 @@
         return stages;
     }
 
-    function updatePrintDensity() {
+    function getEffectiveStagesPerSheet() {
         var stagesPerSheet = Number(
             document.getElementById('print-stages-per-sheet').value || 0
         );
-        var stageCount = stagesPerSheet || getTourismStagesSorted().length;
+        if (stagesPerSheet) return stagesPerSheet;
+        var pageSize = document.getElementById('print-page-size').value;
+        var orientation = document.getElementById('print-orientation').value;
+        if (pageSize === 'A3') return orientation === 'landscape' ? 8 : 6;
+        return orientation === 'landscape' ? 5 : 3;
+    }
+
+    function updatePrintDensity() {
+        var stageCount = getEffectiveStagesPerSheet();
         document.body.classList.toggle('print-many-stages', stageCount > 6);
         document.body.classList.toggle('print-many-stages-extra', stageCount > 10);
     }
 
     function getStageChunks() {
         var stages = getTourismStagesSorted();
-        var stagesPerSheet = Number(
-            document.getElementById('print-stages-per-sheet').value || 0
-        );
+        var stagesPerSheet = getEffectiveStagesPerSheet();
 
-        if (!stagesPerSheet || stages.length <= stagesPerSheet) {
+        if (stages.length <= stagesPerSheet) {
             return [stages];
         }
 
@@ -571,17 +611,17 @@
             return '';
         }
 
-        var personId = getResultPersonId(result);
-        if (!personId || !stage || !stage.id) {
+        var personIds = getResultPersonIds(result);
+        if (!personIds.length || !stage || !stage.id) {
             return '';
         }
 
-        var parts = [];
+        var latestDecision = null;
 
         for (var i = 0; i < race.tourism_stage_decisions.length; i++) {
             var decision = race.tourism_stage_decisions[i];
 
-            if (String(decision.person_id || '') !== String(personId)) {
+            if (personIds.indexOf(String(decision.person_id || '')) === -1) {
                 continue;
             }
 
@@ -589,13 +629,10 @@
                 continue;
             }
 
-            var decisionText = getStageDecisionText(decision);
-            if (decisionText) {
-                parts.push(decisionText);
-            }
+            latestDecision = decision;
         }
 
-        return parts.join('; ');
+        return latestDecision ? getStageDecisionText(latestDecision) : '';
     }
 
     function getStatusText(status) {
@@ -636,6 +673,9 @@
     }
 
     function getPersonName(result) {
+        if (result._tourism_team_members_text) {
+            return result._tourism_team_members_text;
+        }
         if (!result.person) {
             return '';
         }
@@ -643,7 +683,59 @@
         return safeText(result.person.surname) + ' ' + safeText(result.person.name);
     }
 
+    function createTeamMembersCell(result) {
+        var td = document.createElement('td');
+        td.className = 'col-members';
+        var names = result._tourism_team_member_names || [];
+        if (!names.length) {
+            td.appendChild(document.createTextNode(getPersonName(result)));
+            return td;
+        }
+
+        // Состав группы печатаем в две строки: для 4 человек по 2 ФИО в строке.
+        var splitAt = Math.ceil(names.length / 2);
+        var lines = [names.slice(0, splitAt), names.slice(splitAt)];
+        lines.forEach(function (line, index) {
+            if (!line.length) return;
+            if (index > 0) td.appendChild(document.createElement('br'));
+            td.appendChild(document.createTextNode(line.join('; ')));
+        });
+        return td;
+    }
+
+    function splitTextIntoBalancedLines(text, maxLines) {
+        var words = safeText(text).trim().split(/\s+/).filter(Boolean);
+        if (!words.length || maxLines <= 1) return [safeText(text)];
+        var totalLength = words.join(' ').length;
+        var targetLength = Math.ceil(totalLength / maxLines);
+        var lines = [];
+        var current = '';
+        words.forEach(function (word) {
+            if (current && current.length + 1 + word.length > targetLength && lines.length < maxLines - 1) {
+                lines.push(current);
+                current = word;
+            } else {
+                current += (current ? ' ' : '') + word;
+            }
+        });
+        if (current) lines.push(current);
+        return lines;
+    }
+
+    function createTeamCell(result) {
+        var td = document.createElement('td');
+        td.className = 'col-team';
+        splitTextIntoBalancedLines(getTeamName(result), 3).forEach(function (line, index) {
+            if (index > 0) td.appendChild(document.createElement('br'));
+            td.appendChild(document.createTextNode(line));
+        });
+        return td;
+    }
+
     function getBib(result) {
+        if (result._tourism_team_number) {
+            return result._tourism_team_number;
+        }
         if (result.person && result.person.bib) {
             return result.person.bib;
         }
@@ -671,6 +763,33 @@
             return result.result;
         }
         return toHHMMSSFromMsec(getResultMsec(result));
+    }
+
+    function getStartTimeText(result) {
+        var start = result.start_time;
+        if ((start === null || start === undefined) && result.person) {
+            start = result.person.start_time;
+        }
+        return start === null || start === undefined ? '' : toHHMMSSFromMsec(start);
+    }
+
+    function getElapsedTimeText(result) {
+        var personStart = result.person && result.person.start_time;
+        var hasStart = result.start_time !== null && result.start_time !== undefined;
+        hasStart = hasStart || (personStart !== null && personStart !== undefined);
+        if (!hasStart || result.finish_time === null || result.finish_time === undefined) {
+            return '';
+        }
+
+        // The effective start also covers a start assigned to the participant.
+        var start = Number(result.start_msec !== undefined && result.start_msec !== null
+            ? result.start_msec : (result.start_time !== null && result.start_time !== undefined
+                ? result.start_time : personStart));
+        var finish = Number(result.finish_time);
+        if (!isFinite(start) || !isFinite(finish) || finish < start) {
+            return '';
+        }
+        return toHHMMSSFromMsec(finish - start);
     }
 
     function getPenaltyText(result) {
@@ -727,9 +846,12 @@
 
     function groupResultsByAgeGroup() {
         var grouped = {};
+        var sourceResults = race.competition_type === 'tourism_group'
+            ? buildTourismGroupResults()
+            : race.results;
 
-        for (var i = 0; i < race.results.length; i++) {
-            var result = race.results[i];
+        for (var i = 0; i < sourceResults.length; i++) {
+            var result = sourceResults[i];
 
             if (Number(result.status) === 13) {
                 continue;
@@ -744,6 +866,57 @@
         }
 
         return grouped;
+    }
+
+    function buildTourismGroupResults() {
+        var personsByTeam = {};
+        var resultsByTeam = {};
+
+        (race.persons || []).forEach(function (person) {
+            var teamNumber = Number(person.tourism_team_number || 0);
+            if (teamNumber <= 0) return;
+            if (!personsByTeam[teamNumber]) personsByTeam[teamNumber] = [];
+            personsByTeam[teamNumber].push(person);
+        });
+
+        (race.results || []).forEach(function (result) {
+            var teamNumber = result.person
+                ? Number(result.person.tourism_team_number || 0)
+                : 0;
+            if (teamNumber <= 0) return;
+            if (!resultsByTeam[teamNumber]) resultsByTeam[teamNumber] = [];
+            resultsByTeam[teamNumber].push(result);
+        });
+
+        var teamRows = [];
+        Object.keys(resultsByTeam).forEach(function (teamNumber) {
+            var teamResults = resultsByTeam[teamNumber];
+            var persons = (personsByTeam[teamNumber] || []).slice().sort(function (a, b) {
+                return Number(a.tourism_team_leg || 0) - Number(b.tourism_team_leg || 0) ||
+                    Number(a.bib || 0) - Number(b.bib || 0);
+            });
+            var lastResult = teamResults.slice().sort(function (a, b) {
+                return Number(b.finish_time || 0) - Number(a.finish_time || 0);
+            })[0];
+            var row = Object.assign({}, lastResult);
+            row._tourism_team_number = Number(teamNumber);
+            row._tourism_team_person_ids = persons.map(function (person) {
+                return String(person.id || '');
+            });
+            row._tourism_team_member_names = persons.map(function (person) {
+                return (safeText(person.surname) + ' ' + safeText(person.name)).trim();
+            }).filter(Boolean);
+            row._tourism_team_members_text = row._tourism_team_member_names.join('; ');
+            teamRows.push(row);
+        });
+
+        // Старые файлы без номера группы не теряем: оставляем их построчно.
+        (race.results || []).forEach(function (result) {
+            if (!result.person || Number(result.person.tourism_team_number || 0) <= 0) {
+                teamRows.push(result);
+            }
+        });
+        return teamRows;
     }
 
     function assignPlaces(results) {
@@ -820,6 +993,9 @@
 
         var table = document.createElement('table');
         table.className = 'sportorg-table';
+        if (race.competition_type === 'tourism_group') {
+            table.classList.add('tourism-group-results');
+        }
 
         var thead = document.createElement('thead');
         var headerRow = document.createElement('tr');
@@ -829,15 +1005,20 @@
             : [
                 'Место',
                 '№',
-                'Участник',
+                race.competition_type === 'tourism_group' ? 'Состав группы' : 'Участник',
                 'Коллектив',
                 'Старт',
                 'Финиш',
-                'Время',
+                'Время прохождения',
                 'Отсечка'
             ];
-        leadingHeaders.forEach(function (title) {
-            headerRow.appendChild(createHeaderCell(title));
+        var leadingClasses = isSplitStageSheet
+            ? ['col-bib']
+            : ['col-place', 'col-bib', 'col-members', 'col-team', 'col-time', 'col-time', 'col-time', 'col-time'];
+        leadingHeaders.forEach(function (title, index) {
+            var th = createHeaderCell(title);
+            th.className = leadingClasses[index] || '';
+            headerRow.appendChild(th);
         });
 
         stages.forEach(function (stage) {
@@ -847,8 +1028,16 @@
         });
 
         if (!isSplitStageSheet) {
-            ['Штраф', 'Итог', 'Статус', 'Очки'].forEach(function (title) {
-                headerRow.appendChild(createHeaderCell(title));
+            var trailingHeaders = [
+                {title: 'Штраф', className: 'col-penalty'},
+                {title: 'Результат', className: 'col-result'},
+                {title: 'Статус', className: 'col-status'},
+                {title: 'Очки', className: 'col-scores'}
+            ];
+            trailingHeaders.forEach(function (header) {
+                var th = createHeaderCell(header.title);
+                th.className = header.className;
+                headerRow.appendChild(th);
             });
         }
 
@@ -863,16 +1052,17 @@
             var tr = document.createElement('tr');
 
             if (isSplitStageSheet) {
-                tr.appendChild(createCell(getBib(result)));
+                var splitBibCell = createCell(getBib(result));
+                splitBibCell.className = 'col-bib';
+                tr.appendChild(splitBibCell);
             } else {
-                tr.appendChild(createCell(result._tourism_place));
-                tr.appendChild(createCell(getBib(result)));
-                tr.appendChild(createCell(getPersonName(result)));
-                tr.appendChild(createCell(getTeamName(result)));
-                tr.appendChild(createCell(result.start_time ? toHHMMSSFromMsec(result.start_time) : ''));
-                tr.appendChild(createCell(result.finish_time ? toHHMMSSFromMsec(result.finish_time) : ''));
-                tr.appendChild(createCell(result.result_msec ? toHHMMSSFromMsec(result.result_msec) : ''));
-                tr.appendChild(createCell(getCutoffText(result)));
+                var placeCell = createCell(result._tourism_place); placeCell.className = 'col-place'; tr.appendChild(placeCell);
+                var bibCell = createCell(getBib(result)); bibCell.className = 'col-bib'; tr.appendChild(bibCell);
+                tr.appendChild(createTeamMembersCell(result));
+                tr.appendChild(createTeamCell(result));
+                [getStartTimeText(result), result.finish_time ? toHHMMSSFromMsec(result.finish_time) : '', getElapsedTimeText(result), getCutoffText(result)].forEach(function (value) {
+                    var timeCell = createCell(value); timeCell.className = 'col-time'; tr.appendChild(timeCell);
+                });
             }
 
             stages.forEach(function (stage) {
@@ -884,15 +1074,15 @@
             });
 
             if (!isSplitStageSheet) {
-                tr.appendChild(createCell(getPenaltyText(result)));
-                tr.appendChild(createCell(getResultText(result)));
+                var penaltyCell = createCell(getPenaltyText(result)); penaltyCell.className = 'col-penalty'; tr.appendChild(penaltyCell);
+                var resultCell = createCell(getResultText(result)); resultCell.className = 'col-result'; tr.appendChild(resultCell);
                 var statusText = getStatusText(result.status);
                 var stageDsqCount = Number(result.tourism_stage_dsq_count || 0);
                 if (isOk(result) && stageDsqCount > 0) {
                     statusText = 'Снят с этапов: ' + stageDsqCount;
                 }
-                tr.appendChild(createCell(statusText));
-                tr.appendChild(createCell(result.scores || ''));
+                var statusCell = createCell(statusText); statusCell.className = 'col-status'; tr.appendChild(statusCell);
+                var scoresCell = createCell(result.scores || ''); scoresCell.className = 'col-scores'; tr.appendChild(scoresCell);
             }
 
             tbody.appendChild(tr);
@@ -965,8 +1155,12 @@
     var printPageSize = document.getElementById('print-page-size');
     var printOrientation = document.getElementById('print-orientation');
     var printStagesPerSheet = document.getElementById('print-stages-per-sheet');
-    printPageSize.addEventListener('change', updatePrintPageStyle);
-    printOrientation.addEventListener('change', updatePrintPageStyle);
+    function rerenderForPageFormat() {
+        renderTourismResults();
+        updatePrintPageStyle();
+    }
+    printPageSize.addEventListener('change', rerenderForPageFormat);
+    printOrientation.addEventListener('change', rerenderForPageFormat);
     printStagesPerSheet.addEventListener('change', function () {
         renderTourismResults();
         updatePrintPageStyle();

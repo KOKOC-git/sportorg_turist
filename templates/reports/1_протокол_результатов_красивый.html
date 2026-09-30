@@ -40,56 +40,69 @@
         text-transform: uppercase;
     }
     table.sportorg-table {
+        display: table !important;
+        box-sizing: border-box;
         table-layout: fixed;
         width: 100%;
+        max-width: 100%;
         border: 2px solid #000;
         font-size: 13px;
+        word-break: normal;
     }
     table.sportorg-table th,
     table.sportorg-table td {
+        box-sizing: border-box;
+        max-width: 0;
         border: 1px solid #000;
         vertical-align: middle;
         padding: 4px 6px;
+        white-space: normal !important;
+        overflow: hidden;
+        overflow-wrap: anywhere !important;
+        word-wrap: break-word !important;
+        word-break: break-word;
+        line-height: 1.2;
     }
+    table.sportorg-table tr { height: auto; white-space: normal !important; }
     table.sportorg-table th {
         text-align: center;
         font-weight: 700;
         background: #f4f4f4;
     }
-    table.sportorg-table td:nth-child(1),
-    table.sportorg-table th:nth-child(1) { width: 34px; text-align: center; }
-    table.sportorg-table td:nth-child(4),
-    table.sportorg-table th:nth-child(4) { width: 58px; text-align: center; }
-    table.sportorg-table td:nth-child(5),
-    table.sportorg-table th:nth-child(5) { width: 56px; text-align: center; }
-    table.sportorg-table td:nth-child(6),
-    table.sportorg-table th:nth-child(6) { width: 60px; text-align: center; }
-    table.sportorg-table td:nth-child(7),
-    table.sportorg-table th:nth-child(7) { width: 74px; text-align: center; }
-    table.sportorg-table td:nth-child(8),
-    table.sportorg-table th:nth-child(8) { width: 96px; text-align: center; }
-    table.sportorg-table td:nth-child(9),
-    table.sportorg-table th:nth-child(9) { width: 64px; text-align: center; }
+    table.sportorg-table .field-index { width: 5%; text-align: center; }
+    table.sportorg-table .field-name { width: 24%; }
+    table.sportorg-table .field-org { width: 27%; }
+    table.sportorg-table .field-group { width: 12%; }
+    table.sportorg-table .field-year,
+    table.sportorg-table .field-qual,
+    table.sportorg-table .field-bib,
+    table.sportorg-table .field-place_show,
+    table.sportorg-table .field-scores { width: 7%; text-align: center; }
+    table.sportorg-table .field-result,
+    table.sportorg-table .field-result_relay { width: 14%; text-align: center; }
+    table.sportorg-table .field-diff,
+    table.sportorg-table .field-penalty_time,
+    table.sportorg-table .field-penalty_laps { width: 10%; text-align: center; }
     .person-two-lines {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
+        display: block;
+        overflow: visible;
         line-height: 1.2;
-        max-height: 2.4em;
-        width: 220px;
-        white-space: normal;
+        max-height: none;
+        width: 100%;
+        max-width: 100%;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
         word-break: break-word;
     }
     .org-two-lines {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
+        display: block;
+        overflow: visible;
         line-height: 1.2;
-        max-height: 2.4em;
-        width: 240px;
-        white-space: normal;
+        max-height: none;
+        width: 100%;
+        max-width: 100%;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
         word-break: break-word;
     }
     .empty-table td {
@@ -98,9 +111,14 @@
     @media print {
         .protocol-header h3 { font-size: 11px; }
         .protocol-header h2 { font-size: 20px; }
-        table.sportorg-table { font-size: 11px; }
-        .person-two-lines { width: 200px; }
-        .org-two-lines { width: 220px; }
+        table.sportorg-table { display: table !important; width: 100% !important; max-width: 100% !important; font-size: 9px; }
+        table.sportorg-table tr { height: auto !important; white-space: normal !important; }
+        table.sportorg-table th, table.sportorg-table td {
+            height: auto !important; padding: 2px 3px;
+            white-space: normal !important; overflow: hidden !important;
+            overflow-wrap: anywhere !important; word-break: break-word !important;
+        }
+        .person-two-lines, .org-two-lines { width: 100%; max-width: 100%; max-height: none; }
     }
 </style>
 
@@ -125,6 +143,21 @@
         span.title = text || '';
         span.appendChild(document.createTextNode(text || ''));
         return span;
+    }
+
+    function createResultsTable(rows, fields) {
+        var table = new TableGenerator(rows, fields).getTable({className: 'sportorg-table'});
+        var activeKeys = fields.filter(function (field) {
+            return typeof field === 'string' || field.active !== false;
+        }).map(function (field) {
+            return typeof field === 'string' ? field : field.key;
+        });
+        table.querySelectorAll('tr').forEach(function (row) {
+            Array.prototype.forEach.call(row.children, function (cell, index) {
+                if (activeKeys[index]) cell.classList.add('field-' + activeKeys[index]);
+            });
+        });
+        return table;
     }
 
     function getResultsByGroup(group, count) {
@@ -693,7 +726,7 @@
             if (!store.tableView && !store.splitsShow && !Fields.isActive('all_splits')) {
                 resultBlock.appendChild(new TableTextGenerator(rows, fields).getTable());
             } else {
-                resultBlock.appendChild(new TableGenerator(rows, fields).getTable({className: 'sportorg-table'}));
+                resultBlock.appendChild(createResultsTable(rows, fields));
             }
             //show ranking information
             if (!store.showProtocolByCourse && store.rankingShow) {

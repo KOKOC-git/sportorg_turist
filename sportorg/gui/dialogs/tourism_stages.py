@@ -62,7 +62,8 @@ class TourismStagesDialog(QDialog):
 
         self.info_label = QLabel(
             'Одна туристская дистанция может быть назначена нескольким группам. '
-            'Этапы задаются для дистанции, а группы ниже только привязываются к ней.'
+            'Этапы задаются для дистанции. Чтобы переместить участников, отметьте '
+            'их группу на новой дистанции — со старой она снимется автоматически.'
         )
         self.info_label.setWordWrap(True)
         self.layout.addWidget(self.info_label)
@@ -141,15 +142,19 @@ class TourismStagesDialog(QDialog):
         if self.course_combo.count() > 0:
             self.current_course_id = self.course_combo.currentData()
 
-    def get_current_course(self):
-        course_id = self.course_combo.currentData()
+    def get_course_by_id(self, course_id):
         for course in race().tourism_courses:
             if str(course.id) == str(course_id):
                 return course
         return None
 
-    def save_current_course(self):
-        course = self.get_current_course()
+    def get_current_course(self):
+        return self.get_course_by_id(self.course_combo.currentData())
+
+    def save_current_course(self, course_id=None):
+        course = self.get_course_by_id(
+            course_id if course_id is not None else self.course_combo.currentData()
+        )
         if not course:
             return
 
@@ -199,7 +204,10 @@ class TourismStagesDialog(QDialog):
     def change_course(self):
         try:
             if self.current_course_id:
-                self.save_current_course()
+                # currentIndexChanged fires after QComboBox has already changed
+                # currentData(). Save the course whose form was actually shown,
+                # not the newly selected one.
+                self.save_current_course(self.current_course_id)
         except Exception:
             # Не мешаем переключению, пользователь сможет сохранить позже.
             pass
@@ -218,6 +226,11 @@ class TourismStagesDialog(QDialog):
 
         assigned = [str(x) for x in getattr(course, 'group_ids', [])]
 
+        race_competition_type = getattr(
+            race(), 'competition_type', CompetitionType.INDIVIDUAL.value
+        )
+        race_is_tourism = is_tourism_competition_type(race_competition_type)
+
         for group in race().groups:
             group_type = (
                 group.get_competition_type()
@@ -225,11 +238,30 @@ class TourismStagesDialog(QDialog):
                 else getattr(group, 'competition_type', None)
             ) or getattr(race(), 'competition_type', CompetitionType.INDIVIDUAL.value)
 
-            if not is_tourism_competition_type(group_type):
+            # In old files a group may still carry competition_type='individual'
+            # after the whole event was switched to tourism. Such a stale value
+            # must not hide the group from tourism-course assignment.
+            if not race_is_tourism and not is_tourism_competition_type(group_type):
                 continue
 
             checkbox = QCheckBox(group.name)
             checkbox.setChecked(str(group.id) in assigned)
+            assigned_course_names = [
+                other_course.name
+                for other_course in getattr(race(), 'tourism_courses', [])
+                if str(other_course.id) != str(course.id)
+                and str(group.id) in [
+                    str(value)
+                    for value in getattr(other_course, 'group_ids', [])
+                ]
+            ]
+            if assigned_course_names:
+                checkbox.setText(
+                    f'{group.name} (сейчас: {", ".join(assigned_course_names)})'
+                )
+                checkbox.setToolTip(
+                    'При выборе группа будет перемещена с прежней дистанции.'
+                )
             self.group_checkboxes[str(group.id)] = checkbox
             self.groups_layout.addWidget(checkbox)
 

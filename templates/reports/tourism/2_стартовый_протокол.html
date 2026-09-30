@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% block title %}Стартовый протокол — туризм{% endblock %}
+{% block head %}{{ super() }}{% endblock %}
+
+{% block content %}
+<details class="protocol-editor no-print" open>
+    <summary>Настройка протокола перед печатью</summary>
+    <div class="editor-grid">
+        <label>Название соревнования<input id="header-main-title" type="text"></label>
+        <label>Дата<input id="header-date" type="text"></label>
+        <label>Место проведения<input id="header-location" type="text"></label>
+        <label>Название протокола<input id="header-protocol-title" type="text"></label>
+        <label>Дистанция / дисциплина<input id="header-distance" type="text"></label>
+        <label>Главный судья<input id="header-chief-referee" type="text"></label>
+        <label>Главный секретарь<input id="header-secretary" type="text"></label>
+        <label>Судья на старте<input id="header-start-referee" type="text"></label>
+    </div>
+</details>
+
+<div class="protocol-controls no-print">
+    <label>Сортировка
+        <select id="sort-mode">
+            <option value="start">по времени старта</option>
+            <option value="bib">по стартовому номеру</option>
+            <option value="name">по участнику / команде</option>
+        </select>
+    </label>
+    <label>Ориентация
+        <select id="print-orientation">
+            <option value="landscape" selected>Альбомная</option>
+            <option value="portrait">Книжная</option>
+        </select>
+    </label>
+    <label><input type="checkbox" data-column="group" checked> Группа</label>
+    <label><input type="checkbox" data-column="organization" checked> Коллектив</label>
+    <label><input type="checkbox" data-column="year" checked> Год</label>
+    <label><input type="checkbox" data-column="card" checked> Чип</label>
+    <label><input type="checkbox" data-column="actual" checked> Фактический старт</label>
+    <label><input type="checkbox" data-column="mark" checked> Отметка судьи</label>
+    <button id="print-protocol" type="button">Печать</button>
+</div>
+
+<div id="start-protocol-groups"></div>
+
+{% raw %}
+<style id="page-style">@page { size: A4 landscape; margin: 8mm; }</style>
+<style>
+    .protocol-heading { text-align: center; margin-bottom: 14px; }
+    .protocol-heading h3, .protocol-heading h2 { margin: 5px 0; }
+    #protocol-event-details, #protocol-distance { margin: 4px 0; }
+    .protocol-editor { margin: 12px 0; padding: 10px 12px; border: 1px solid #bbb; border-radius: 5px; background: #f7f7f7; }
+    .protocol-editor summary { cursor: pointer; font-weight: bold; }
+    .editor-grid { display: grid; grid-template-columns: repeat(3, minmax(210px, 1fr)); gap: 9px 12px; margin-top: 10px; }
+    .editor-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+    .editor-grid input { box-sizing: border-box; width: 100%; padding: 5px 7px; }
+    .protocol-controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 12px 0; padding: 9px; background: #f4f4f4; border: 1px solid #ccc; }
+    .protocol-controls label { white-space: nowrap; }
+    .protocol-controls select, .protocol-controls button { padding: 4px 8px; }
+    .start-group { margin: 0 0 24px; page-break-before: auto !important; break-before: auto !important; }
+    .start-group-title { margin: 14px 0 7px; font-size: 16px; font-weight: bold; }
+    .table-wrap { box-sizing: border-box; width: 100%; max-width: 100%; overflow-x: auto; }
+    .start-protocol-table { box-sizing: border-box; width: 100%; max-width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .start-protocol-table th, .start-protocol-table td {
+        box-sizing: border-box; max-width: 0; height: auto; border: 1px solid #222;
+        padding: 5px 4px; font-size: 11px; line-height: 1.15; text-align: center;
+        vertical-align: middle; white-space: normal !important; overflow: hidden;
+        overflow-wrap: anywhere !important; word-wrap: break-word !important;
+        word-break: break-word; hyphens: auto;
+    }
+    .start-protocol-table th { font-weight: bold; background: #eee; }
+    .start-protocol-table td.col-name, .start-protocol-table td.col-organization { text-align: left; }
+    .col-order { width: 4%; } .col-bib { width: 6%; } .col-name { width: 20%; }
+    .col-group { width: 10%; } .col-organization { width: 17%; } .col-year { width: 6%; }
+    .col-card { width: 8%; } .col-start { width: 9%; } .col-actual { width: 10%; } .col-mark { width: 10%; }
+    td[contenteditable="true"]:focus { outline: 2px solid #2684ff; background: #eef6ff; }
+    .protocol-signatures { margin-top: 22px; display: grid; gap: 14px; break-inside: avoid; }
+    .protocol-signatures > div { display: grid; grid-template-columns: 160px 1fr 140px; gap: 12px; align-items: end; }
+    .column-hidden { display: none; }
+    #footer { display: none; }
+    @media (max-width: 800px) { .editor-grid { grid-template-columns: 1fr; } }
+    @media print {
+        .no-print { display: none !important; }
+        html, body { width: 100%; margin: 0; padding: 0; }
+        .table-wrap { width: 100%; max-width: 100%; overflow: hidden; }
+        .start-protocol-table { width: 100% !important; max-width: 100% !important; table-layout: fixed !important; }
+        .start-protocol-table thead { display: table-header-group; }
+        .start-protocol-table tr { height: auto !important; break-inside: avoid; page-break-inside: avoid; }
+        .start-protocol-table th, .start-protocol-table td {
+            max-width: 0; height: auto !important; padding: 2px 3px; font-size: 8px;
+            line-height: 1.12; white-space: normal !important; overflow: hidden !important;
+            overflow-wrap: anywhere !important; word-wrap: break-word !important;
+            word-break: break-word !important;
+        }
+        .start-group { page-break-after: always; }
+        .start-group:last-child { page-break-after: auto; }
+        .start-group-title { margin-top: 0; }
+        td[contenteditable="true"]:focus { outline: none; background: transparent; }
+    }
+</style>
+
+<script>
+    var race = {% endraw %}{{ race|tojson }}{% raw %};
+    racePreparation(race);
+
+    var columns = [
+        {key: 'order', title: '№ п/п'},
+        {key: 'bib', title: 'Стартовый №'},
+        {key: 'name', title: race.competition_type === 'tourism_group' ? 'Состав группы' : 'Участник / команда'},
+        {key: 'group', title: 'Группа'},
+        {key: 'organization', title: 'Коллектив'},
+        {key: 'year', title: 'Год рожд.'},
+        {key: 'card', title: 'Чип'},
+        {key: 'start', title: 'Время старта'},
+        {key: 'actual', title: 'Фактический старт'},
+        {key: 'mark', title: 'Отметка судьи'}
+    ];
+
+    function safe(value) { return value === null || value === undefined ? '' : String(value); }
+    function pad(value) { return value < 10 ? '0' + value : String(value); }
+    function formatTime(msec) {
+        if (msec === null || msec === undefined || msec === '') return '';
+        var seconds = Math.floor(Number(msec) / 1000);
+        if (!isFinite(seconds) || seconds < 0) return '';
+        return pad(Math.floor(seconds / 3600)) + ':' + pad(Math.floor(seconds % 3600 / 60)) + ':' + pad(seconds % 60);
+    }
+    function formatDate(value) {
+        var match = safe(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return match ? match[3] + '.' + match[2] + '.' + match[1] : safe(value);
+    }
+    function eventTitle() { return safe(race.data.description || race.data.title); }
+    function courseNames() {
+        var names = [];
+        (race.tourism_courses || []).forEach(function (course) {
+            var name = safe(course.name).trim();
+            if (name && names.indexOf(name) < 0) names.push(name);
+        });
+        return names.join(', ');
+    }
+    function personName(person) {
+        var name = (safe(person.surname) + ' ' + safe(person.name)).trim();
+        if (name) return name;
+        return person.organization ? safe(person.organization.name) : '';
+    }
+    function rowFromPerson(person) {
+        var birth = safe(person.birth_date);
+        return {
+            person: person,
+            bib: Number(person.bib || 0),
+            name: personName(person),
+            group: person.group ? safe(person.group.name) : '',
+            organization: person.organization ? safe(person.organization.name) : '',
+            year: birth ? birth.slice(0, 4) : '',
+            card: Number(person.card_number || 0) || '',
+            startMsec: person.start_time,
+            start: formatTime(person.start_time), actual: '', mark: ''
+        };
+    }
+    function rowsFromTourismGroups() {
+        var grouped = {};
+        var unassigned = [];
+
+        (race.persons || []).forEach(function (person) {
+            var teamNumber = Number(person.tourism_team_number || 0);
+            if (teamNumber <= 0) {
+                unassigned.push(rowFromPerson(person));
+                return;
+            }
+            if (!grouped[teamNumber]) grouped[teamNumber] = [];
+            grouped[teamNumber].push(person);
+        });
+
+        var result = Object.keys(grouped).map(function (teamNumber) {
+            var persons = grouped[teamNumber].slice().sort(function (a, b) {
+                return Number(a.tourism_team_leg || 0) - Number(b.tourism_team_leg || 0) ||
+                    Number(a.bib || 0) - Number(b.bib || 0) ||
+                    personName(a).localeCompare(personName(b));
+            });
+            var representative = persons.filter(function (person) {
+                return Number(person.tourism_team_leg || 0) === 1;
+            })[0] || persons[0];
+            var birthYears = [];
+            var cardNumbers = [];
+            persons.forEach(function (person) {
+                var birth = safe(person.birth_date);
+                var year = birth ? birth.slice(0, 4) : '';
+                var card = Number(person.card_number || 0) || '';
+                if (year && birthYears.indexOf(year) < 0) birthYears.push(year);
+                if (card && cardNumbers.indexOf(card) < 0) cardNumbers.push(card);
+            });
+            return {
+                persons: persons,
+                bib: Number(teamNumber),
+                name: persons.map(personName).filter(Boolean).join('; '),
+                group: representative.group ? safe(representative.group.name) : '',
+                organization: representative.organization ? safe(representative.organization.name) : '',
+                year: birthYears.join(', '),
+                card: cardNumbers.join(', '),
+                startMsec: representative.start_time,
+                start: formatTime(representative.start_time), actual: '', mark: ''
+            };
+        });
+        return result.concat(unassigned);
+    }
+    function rows() {
+        var result = race.competition_type === 'tourism_group'
+            ? rowsFromTourismGroups()
+            : (race.persons || []).map(rowFromPerson);
+        var mode = document.getElementById('sort-mode').value;
+        result.sort(function (a, b) {
+            if (mode === 'bib') return a.bib - b.bib || a.name.localeCompare(b.name);
+            if (mode === 'name') return a.name.localeCompare(b.name) || a.bib - b.bib;
+            var aStart = a.startMsec === null || a.startMsec === undefined ? Number.MAX_SAFE_INTEGER : Number(a.startMsec);
+            var bStart = b.startMsec === null || b.startMsec === undefined ? Number.MAX_SAFE_INTEGER : Number(b.startMsec);
+            return aStart - bStart || a.bib - b.bib || a.name.localeCompare(b.name);
+        });
+        return result;
+    }
+    function editableCell(value, key) {
+        var td = document.createElement('td');
+        td.className = 'col-' + key;
+        td.contentEditable = 'true';
+        td.textContent = safe(value);
+        return td;
+    }
+    function createProtocolHeading(groupName) {
+        var heading = document.createElement('div');
+        heading.className = 'protocol-heading';
+        heading.innerHTML =
+            '<h3 class="protocol-main-title"></h3>' +
+            '<div class="protocol-event-details"></div>' +
+            '<h2 class="protocol-title"></h2>' +
+            '<div class="protocol-distance"></div>';
+        var groupTitle = document.createElement('div');
+        groupTitle.className = 'start-group-title';
+        groupTitle.contentEditable = 'true';
+        groupTitle.textContent = 'Группа: ' + groupName;
+        heading.appendChild(groupTitle);
+        return heading;
+    }
+    function createSignatures() {
+        var signatures = document.createElement('div');
+        signatures.className = 'protocol-signatures';
+        signatures.innerHTML =
+            '<div class="start-referee-row"><span>Судья на старте</span><span class="protocol-start-referee"></span><span>________________</span></div>' +
+            '<div class="chief-referee-row"><span>Главный судья</span><span class="protocol-chief-referee"></span><span>________________</span></div>' +
+            '<div class="secretary-row"><span>Главный секретарь</span><span class="protocol-secretary"></span><span>________________</span></div>';
+        return signatures;
+    }
+    function createGroupTable(groupName, groupRows) {
+        var section = document.createElement('section');
+        section.className = 'start-group';
+        section.appendChild(createProtocolHeading(groupName));
+
+        var wrap = document.createElement('div');
+        wrap.className = 'table-wrap';
+        var table = document.createElement('table');
+        table.className = 'start-protocol-table';
+        var thead = document.createElement('thead');
+        var head = document.createElement('tr');
+        columns.forEach(function (column) {
+            var th = document.createElement('th');
+            th.className = 'col-' + column.key;
+            th.textContent = column.title;
+            head.appendChild(th);
+        });
+        thead.appendChild(head);
+        table.appendChild(thead);
+        var body = document.createElement('tbody');
+        groupRows.forEach(function (row, index) {
+            var tr = document.createElement('tr');
+            var values = {
+                order: index + 1, bib: row.bib || '', name: row.name,
+                group: row.group, organization: row.organization, year: row.year,
+                card: row.card, start: row.start, actual: row.actual, mark: row.mark
+            };
+            columns.forEach(function (column) { tr.appendChild(editableCell(values[column.key], column.key)); });
+            body.appendChild(tr);
+        });
+        table.appendChild(body);
+        wrap.appendChild(table);
+        section.appendChild(wrap);
+        section.appendChild(createSignatures());
+        return section;
+    }
+    function render() {
+        var root = document.getElementById('start-protocol-groups');
+        root.textContent = '';
+        var grouped = {};
+        rows().forEach(function (row) {
+            var groupName = row.group || 'Без группы';
+            if (!grouped[groupName]) grouped[groupName] = [];
+            grouped[groupName].push(row);
+        });
+        Object.keys(grouped).sort(function (a, b) {
+            if (a === 'Без группы') return 1;
+            if (b === 'Без группы') return -1;
+            return a.localeCompare(b);
+        }).forEach(function (groupName) {
+            root.appendChild(createGroupTable(groupName, grouped[groupName]));
+        });
+        updateColumns();
+        updateHeader();
+    }
+    function setText(className, value) {
+        document.querySelectorAll('.' + className).forEach(function (element) {
+            element.textContent = value || '';
+        });
+    }
+    function updateHeader() {
+        var date = document.getElementById('header-date').value.trim();
+        var location = document.getElementById('header-location').value.trim();
+        setText('protocol-main-title', document.getElementById('header-main-title').value.trim());
+        setText('protocol-event-details', [date, location].filter(Boolean).join(', '));
+        setText('protocol-title', document.getElementById('header-protocol-title').value.trim());
+        setText('protocol-distance', document.getElementById('header-distance').value.trim());
+        [['start-referee', 'start-referee-row'], ['chief-referee', 'chief-referee-row'], ['secretary', 'secretary-row']].forEach(function (pair) {
+            var value = document.getElementById('header-' + pair[0]).value.trim();
+            setText('protocol-' + pair[0], value);
+            document.querySelectorAll('.' + pair[1]).forEach(function (row) {
+                row.style.display = value ? '' : 'none';
+            });
+        });
+    }
+    function updateColumns() {
+        document.querySelectorAll('[data-column]').forEach(function (checkbox) {
+            document.querySelectorAll('.col-' + checkbox.dataset.column).forEach(function (cell) {
+                cell.classList.toggle('column-hidden', !checkbox.checked);
+            });
+        });
+    }
+    function initialize() {
+        var values = {
+            'header-main-title': eventTitle(),
+            'header-date': formatDate(race.data.start_datetime),
+            'header-location': safe(race.data.location),
+            'header-protocol-title': 'СТАРТОВЫЙ ПРОТОКОЛ — ТУРИЗМ',
+            'header-distance': courseNames(),
+            'header-chief-referee': safe(race.data.chief_referee),
+            'header-secretary': safe(race.data.secretary),
+            'header-start-referee': ''
+        };
+        Object.keys(values).forEach(function (id) {
+            document.getElementById(id).value = values[id];
+            document.getElementById(id).addEventListener('input', updateHeader);
+        });
+        document.getElementById('sort-mode').addEventListener('change', render);
+        document.getElementById('print-orientation').addEventListener('change', function () {
+            document.getElementById('page-style').textContent = '@page { size: A4 ' + this.value + '; margin: 8mm; }';
+        });
+        document.querySelectorAll('[data-column]').forEach(function (checkbox) { checkbox.addEventListener('change', updateColumns); });
+        document.getElementById('print-protocol').addEventListener('click', function () { window.print(); });
+        render();
+    }
+    initialize();
+</script>
+{% endraw %}
+{% endblock %}
+{% block footer %}{% endblock %}

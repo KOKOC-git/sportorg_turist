@@ -100,10 +100,12 @@ def build_tourism_team_units(obj=None) -> List[TourismTeamUnit]:
 
     result_map = _result_by_person_id(obj)
     grouped = {}
+    unassigned_persons = []
 
     for person in obj.persons:
         number = int(getattr(person, 'tourism_team_number', 0) or 0)
         if number <= 0:
+            unassigned_persons.append(person)
             continue
         grouped.setdefault(number, []).append(person)
 
@@ -130,21 +132,14 @@ def build_tourism_team_units(obj=None) -> List[TourismTeamUnit]:
 
         result = None
         if team_results:
-            # Предпочитаем результат участника с tourism_team_leg = 1,
-            # но если финиш был записан на другой номер участника — тоже принимаем его.
-            leg1_person_ids = {
-                str(person.id)
-                for person in persons
-                if int(getattr(person, 'tourism_team_leg', 0) or 0) == 1
-            }
+            # Связка/группа финиширует по последнему участнику.
+            # Если система записала несколько финишей на разных членов
+            # состава, в зачёт берём самый поздний.
+            def finish_msec(item):
+                finish = item.get_finish_time()
+                return finish.to_msec() if finish else -1
 
-            for item in team_results:
-                if item.person and str(item.person.id) in leg1_person_ids:
-                    result = item
-                    break
-
-            if result is None:
-                result = team_results[0]
+            result = max(team_results, key=finish_msec)
 
         units.append(
             TourismTeamUnit(
@@ -154,6 +149,35 @@ def build_tourism_team_units(obj=None) -> List[TourismTeamUnit]:
                 result_count=len(team_results),
             )
         )
+
+    # Compatibility with files created before explicit tourism team numbers
+    # were introduced. In pair/group modes each old participant record was a
+    # complete start unit, so keep it visible using its bib as the unit number.
+    if is_tourism_team_mode(obj):
+        used_numbers = {unit.number for unit in units}
+        next_fallback_number = max(used_numbers or {0}) + 1
+
+        for person in unassigned_persons:
+            result = result_map.get(str(person.id))
+            if result is None:
+                continue
+
+            number = int(getattr(person, 'bib', 0) or 0)
+            if number <= 0 or number in used_numbers:
+                while next_fallback_number in used_numbers:
+                    next_fallback_number += 1
+                number = next_fallback_number
+                next_fallback_number += 1
+
+            used_numbers.add(number)
+            units.append(
+                TourismTeamUnit(
+                    number=number,
+                    persons=[person],
+                    result=result,
+                    result_count=1,
+                )
+            )
 
     units.sort(key=lambda unit: unit.number)
     return units

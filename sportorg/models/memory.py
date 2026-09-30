@@ -918,16 +918,15 @@ class Result:
         ret = OTime()
         if self.penalty_time:
             ret += self.penalty_time
-        if getattr(self, 'tourism_penalty_time', None):
-            ret += self.tourism_penalty_time
+        # TourismResultCalculator already includes the tourism adjustment in
+        # penalty_time. tourism_penalty_time is retained for display only.
         return ret
 
     def get_credit_time(self) -> OTime:
         ret = OTime()
         if self.credit_time:
             ret += self.credit_time
-        if getattr(self, 'tourism_credit_time', None):
-            ret += self.tourism_credit_time
+        # Likewise, tourism_credit_time is already included in credit_time.
         return ret
 
     def get_place(self):

@@ -25,6 +25,14 @@ from sportorg.models.memory import get_current_race_index, race, races
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.result.score_calculation import ScoreCalculation
 from sportorg.models.result.split_calculation import RaceSplits
+from sportorg.services.tourism_overall_standings import (
+    build_tourism_overall_standings,
+    build_tourism_territorial_standings,
+    get_tourism_standings_rules,
+)
+from sportorg.services.tourism_scores import (
+    calculate_tourism_team_places_and_scores,
+)
 
 _settings = {
     'last_template': None,
@@ -232,6 +240,16 @@ class ReportDialog(QDialog):
                 os.startfile(file_name)
 
         else:
+            tourism_team_units = []
+            tourism_standings = []
+            tourism_territorial_standings = []
+            tourism_standings_rules = {}
+            if template_path.endswith('/tourism/team_score.html'):
+                tourism_team_units = calculate_tourism_team_places_and_scores(obj)
+                tourism_standings = build_tourism_overall_standings(obj)
+                tourism_territorial_standings = build_tourism_territorial_standings(obj)
+                tourism_standings_rules = get_tourism_standings_rules(obj)
+
             template = get_text_from_file(
                 template_path,
                 race=races_dict[get_current_race_index()],
@@ -239,6 +257,10 @@ class ReportDialog(QDialog):
                 rent_cards=list(RentCards().get()),
                 current_race=get_current_race_index(),
                 selected={'persons': []},  # leave here for back compatibility
+                tourism_team_units=tourism_team_units,
+                tourism_standings=tourism_standings,
+                tourism_territorial_standings=tourism_territorial_standings,
+                tourism_standings_rules=tourism_standings_rules,
             )
 
             if _settings['save_to_last_file']:

@@ -10,6 +10,7 @@ from sportorg.models.memory import (
 from sportorg.models.result.result_calculation import ResultCalculation
 from sportorg.models.tourism import TourismStageDecision
 from sportorg.services.tourism_result_calculation import TourismResultCalculator
+from sportorg.services.tourism_team_units import build_tourism_team_units
 
 
 def make_tourism_race(competition_type='tourism_individual'):
@@ -57,6 +58,39 @@ def test_live_calculator_combines_time_points_and_cutoff():
     assert result.tourism_penalty_points == 2
     assert result.penalty_time.to_msec() == 90_000
     assert result.credit_time.to_msec() == 0
+    assert result.get_result_otime().to_msec() == 30 * 60_000 + 90_000
+
+
+def test_tourism_penalty_is_applied_once_to_result():
+    race_obj, person, result = make_tourism_race('tourism_group')
+    new_event([race_obj])
+    race_obj.tourism_penalty_point_sec = 15
+    result.finish_time = result.start_time + OTime(msec=11 * 60_000 + 23_000)
+    add_decision(race_obj, person, penalty_points=8)
+
+    TourismResultCalculator.apply(race_obj)
+
+    assert result.tourism_penalty_time.to_msec() == 120_000
+    assert result.penalty_time.to_msec() == 120_000
+    assert result.get_penalty_time().to_msec() == 120_000
+    assert result.get_result_otime().to_msec() == 13 * 60_000 + 23_000
+
+    TourismResultCalculator.apply(race_obj)
+    assert result.get_result_otime().to_msec() == 13 * 60_000 + 23_000
+
+
+def test_tourism_cutoff_is_applied_once_to_result():
+    race_obj, person, result = make_tourism_race('tourism_group')
+    new_event([race_obj])
+    race_obj.tourism_penalty_point_sec = 15
+    result.finish_time = result.start_time + OTime(msec=17 * 60_000 + 45_000)
+    add_decision(race_obj, person, penalty_points=10, cutoff_time_sec=133)
+
+    TourismResultCalculator.apply(race_obj)
+
+    assert result.tourism_penalty_time.to_msec() == 150_000
+    assert result.tourism_credit_time.to_msec() == 133_000
+    assert result.get_result_otime().to_msec() == 18 * 60_000 + 2_000
 
 
 def test_live_calculator_uses_configured_penalty_point_value():
@@ -162,6 +196,78 @@ def test_all_tourism_competition_types_use_live_calculator():
         TourismResultCalculator.apply(race_obj)
 
         assert result.penalty_time.to_msec() == 30_000, competition_type
+
+
+def test_group_penalty_applies_to_every_result_and_last_finish_wins():
+    race_obj = Race()
+    race_obj.competition_type = 'tourism_group'
+    race_obj.tourism_penalty_point_sec = 30
+    new_event([race_obj])
+
+    group = Group()
+    group.name = 'Группа 1'
+    race_obj.groups.append(group)
+
+    persons = []
+    results = []
+    for index, finish_minutes in enumerate((20, 23), 1):
+        person = Person()
+        person.name = f'Участник {index}'
+        person.group = group
+        person.set_bib(100 + index)
+        person.tourism_team_number = 7
+        person.tourism_team_leg = index
+        result = ResultManual()
+        result.person = person
+        result.start_time = OTime(msec=10 * 60 * 60 * 1000)
+        result.finish_time = result.start_time + OTime(msec=finish_minutes * 60_000)
+        persons.append(person)
+        results.append(result)
+
+    race_obj.persons.extend(persons)
+    race_obj.results.extend(results)
+    add_decision(race_obj, persons[0], penalty_points=2)
+
+    TourismResultCalculator.apply(race_obj)
+
+    assert [result.tourism_penalty_time.to_msec() for result in results] == [
+        60_000,
+        60_000,
+    ]
+    assert [result.get_result_otime().to_msec() for result in results] == [
+        21 * 60_000,
+        24 * 60_000,
+    ]
+
+    units = build_tourism_team_units(race_obj)
+    assert len(units) == 1
+    assert units[0].result is results[1]
+    assert units[0].result.get_result_otime().to_msec() == 24 * 60_000
+
+
+def test_group_stage_decision_is_not_doubled_for_two_members():
+    race_obj = Race()
+    race_obj.competition_type = 'tourism_group'
+    race_obj.tourism_penalty_point_sec = 30
+
+    first = Person()
+    second = Person()
+    first.tourism_team_number = 3
+    second.tourism_team_number = 3
+    race_obj.persons.extend([first, second])
+
+    result = ResultManual()
+    result.person = first
+    result.start_time = OTime(msec=0)
+    result.finish_time = OTime(msec=10 * 60_000)
+    race_obj.results.append(result)
+
+    add_decision(race_obj, first, stage_id='stage-1', penalty_points=2)
+    add_decision(race_obj, second, stage_id='stage-1', penalty_points=2)
+
+    TourismResultCalculator.apply(race_obj)
+
+    assert result.tourism_penalty_time.to_msec() == 60_000
 
 
 def test_stage_dsq_results_are_sorted_after_clean_results():

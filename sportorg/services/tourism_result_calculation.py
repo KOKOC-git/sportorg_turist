@@ -90,10 +90,39 @@ class TourismResultCalculator:
         if r.competition_type not in TOURISM_COMPETITION_TYPES:
             return
 
-        result_map = {}
+        is_team_mode = getattr(r, 'competition_type', '') in {
+            'tourism_pair',
+            'tourism_group',
+        }
+
+        person_target_map = {}
+        results_by_target = defaultdict(list)
         for result in r.results:
             if result.person:
-                result_map[str(result.person.id)] = result
+                person_id = str(result.person.id)
+                team_number = int(
+                    getattr(result.person, 'tourism_team_number', 0) or 0
+                )
+                target_id = (
+                    f'team:{team_number}'
+                    if is_team_mode and team_number > 0
+                    else f'person:{person_id}'
+                )
+                person_target_map[person_id] = target_id
+                results_by_target[target_id].append(result)
+
+        # Решение судьи, записанное на любого члена связки/группы,
+        # относится ко всему составу. Участник может ещё не иметь
+        # результа, поэтому строим карту также по всему стартовому списку.
+        for person in getattr(r, 'persons', []):
+            person_id = str(person.id)
+            team_number = int(getattr(person, 'tourism_team_number', 0) or 0)
+            person_target_map.setdefault(
+                person_id,
+                f'team:{team_number}'
+                if is_team_mode and team_number > 0
+                else f'person:{person_id}',
+            )
 
         aggregates = defaultdict(lambda: {
             "penalty_time_sec": 0,
@@ -107,14 +136,16 @@ class TourismResultCalculator:
         # Иначе при повторном сохранении штраф/отсечка могут суммироваться несколько раз.
         unique_decisions = {}
         for decision in getattr(r, "tourism_stage_decisions", []):
-            key = (str(decision.person_id), str(decision.stage_id))
+            person_id = str(decision.person_id)
+            target_id = person_target_map.get(person_id, f'person:{person_id}')
+            key = (target_id, str(decision.stage_id))
             unique_decisions[key] = decision
 
         # Также очищаем список в памяти, чтобы при следующем сохранении файл не хранил дубли.
         r.tourism_stage_decisions = list(unique_decisions.values())
 
-        for decision in unique_decisions.values():
-            agg = aggregates[str(decision.person_id)]
+        for (target_id, _stage_id), decision in unique_decisions.items():
+            agg = aggregates[target_id]
             agg["cutoff_time_sec"] += int(decision.cutoff_time_sec)
 
             if decision.is_stage_dsq:
@@ -127,65 +158,69 @@ class TourismResultCalculator:
             agg["penalty_time_sec"] += int(decision.penalty_time_sec)
             agg["penalty_points"] += int(decision.penalty_points)
 
-        for person_id, agg in aggregates.items():
-            result = result_map.get(person_id)
-            if not result:
+        for target_id, agg in aggregates.items():
+            target_results = results_by_target.get(target_id, [])
+            if not target_results:
                 continue
 
-            # В Excel-логике туризма штрафные баллы должны влиять на итоговое время.
-            points_as_time_sec = int(agg["penalty_points"]) * penalty_point_sec
-            total_tourism_penalty_sec = int(agg["penalty_time_sec"]) + points_as_time_sec
-
-            result.tourism_penalty_time = OTime(msec=total_tourism_penalty_sec * 1000)
-            result.tourism_credit_time = OTime(msec=int(agg["cutoff_time_sec"]) * 1000)
-            result.tourism_penalty_points = int(agg["penalty_points"])
-            result.tourism_stage_dsq_count = int(agg["stage_dsq_count"])
-
-            base_penalty_msec = _otime_to_msec(result._tourism_base_penalty_time)
-            base_credit_msec = _otime_to_msec(result._tourism_base_credit_time)
-
-            # Ключевая интеграция со стандартным расчётом SportOrg:
-            # penalty_time увеличивает результат,
-            # credit_time уменьшает результат как отсечка.
-            # В стандартный расчёт SportOrg передаём не две величины сразу,
-            # а чистую разницу: штрафы минус отсечки.
-            # Иначе в некоторых режимах SportOrg применяет credit_time,
-            # но не прибавляет penalty_time к итоговому времени.
-            net_tourism_msec = (
-                total_tourism_penalty_sec * 1000
-                - int(agg["cutoff_time_sec"]) * 1000
-            )
-
-            if net_tourism_msec >= 0:
-                result.penalty_time = _make_otime_from_msec(
-                    base_penalty_msec + net_tourism_msec
-                )
-                result.credit_time = _make_otime_from_msec(base_credit_msec)
-            else:
-                result.penalty_time = _make_otime_from_msec(base_penalty_msec)
-                result.credit_time = _make_otime_from_msec(
-                    base_credit_msec + abs(net_tourism_msec)
+            for result in target_results:
+                TourismResultCalculator._apply_aggregate_to_result(
+                    result,
+                    agg,
+                    penalty_point_sec,
+                    target_id,
                 )
 
-            logging.debug(
-                "TOURISM RESULT AFTER APPLY: person_id=%s penalty_time_sec=%s penalty_points=%s cutoff_time_sec=%s stage_dsq_count=%s final_penalty=%s final_credit=%s tourism_penalty=%s tourism_credit=%s",
-                person_id,
-                agg["penalty_time_sec"],
-                agg["penalty_points"],
-                agg["cutoff_time_sec"],
-                agg["stage_dsq_count"],
-                _debug_otime(result.penalty_time),
-                _debug_otime(result.credit_time),
-                _debug_otime(result.tourism_penalty_time),
-                _debug_otime(result.tourism_credit_time),
+    @staticmethod
+    def _apply_aggregate_to_result(result, agg, penalty_point_sec, target_id):
+        # В Excel-логике туризма штрафные баллы должны влиять на итоговое время.
+        points_as_time_sec = int(agg["penalty_points"]) * penalty_point_sec
+        total_tourism_penalty_sec = int(agg["penalty_time_sec"]) + points_as_time_sec
+
+        result.tourism_penalty_time = OTime(msec=total_tourism_penalty_sec * 1000)
+        result.tourism_credit_time = OTime(msec=int(agg["cutoff_time_sec"]) * 1000)
+        result.tourism_penalty_points = int(agg["penalty_points"])
+        result.tourism_stage_dsq_count = int(agg["stage_dsq_count"])
+
+        base_penalty_msec = _otime_to_msec(result._tourism_base_penalty_time)
+        base_credit_msec = _otime_to_msec(result._tourism_base_credit_time)
+
+        # Ключевая интеграция со стандартным расчётом SportOrg:
+        # penalty_time увеличивает результат, credit_time уменьшает его.
+        net_tourism_msec = (
+            total_tourism_penalty_sec * 1000
+            - int(agg["cutoff_time_sec"]) * 1000
+        )
+
+        if net_tourism_msec >= 0:
+            result.penalty_time = _make_otime_from_msec(
+                base_penalty_msec + net_tourism_msec
+            )
+            result.credit_time = _make_otime_from_msec(base_credit_msec)
+        else:
+            result.penalty_time = _make_otime_from_msec(base_penalty_msec)
+            result.credit_time = _make_otime_from_msec(
+                base_credit_msec + abs(net_tourism_msec)
             )
 
-            # Очковую часть пока сохраняем для дисциплин, где результат считается баллами.
-            # Для временного протокола основное влияние уже сделано через penalty_time.
-            if agg["penalty_points"]:
-                result.scores = max(0, result.scores - agg["penalty_points"])
-                result.rogaine_score = max(0, result.rogaine_score - agg["penalty_points"])
-                result.scores_ardf = max(0, result.scores_ardf - agg["penalty_points"])
+        logging.debug(
+            "TOURISM RESULT AFTER APPLY: target_id=%s penalty_time_sec=%s penalty_points=%s cutoff_time_sec=%s stage_dsq_count=%s final_penalty=%s final_credit=%s tourism_penalty=%s tourism_credit=%s",
+            target_id,
+            agg["penalty_time_sec"],
+            agg["penalty_points"],
+            agg["cutoff_time_sec"],
+            agg["stage_dsq_count"],
+            _debug_otime(result.penalty_time),
+            _debug_otime(result.credit_time),
+            _debug_otime(result.tourism_penalty_time),
+            _debug_otime(result.tourism_credit_time),
+        )
+
+        # Очковую часть сохраняем для дисциплин, где результат считается баллами.
+        if agg["penalty_points"]:
+            result.scores = max(0, result.scores - agg["penalty_points"])
+            result.rogaine_score = max(0, result.rogaine_score - agg["penalty_points"])
+            result.scores_ardf = max(0, result.scores_ardf - agg["penalty_points"])
 
 
 def patch_result_calculation():

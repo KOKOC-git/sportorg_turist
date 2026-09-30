@@ -84,15 +84,33 @@ def _is_female_group_name(group_name: str, female_prefix: str) -> bool:
     return group_name.startswith(female_prefix)
 
 
-def _sort_result_key(result):
+def _result_place_key(result, obj):
+    result_time = result.get_result_otime().to_msec()
+    stage_dsq_count = int(
+        getattr(result, 'tourism_stage_dsq_count', 0) or 0
+    )
+
+    if obj.get_setting('result_processing_mode', 'time') == 'scores':
+        # В рогейне личный протокол ранжирует сначала по убыванию баллов,
+        # а при равенстве баллов — по возрастанию времени.
+        return (
+            stage_dsq_count,
+            -int(getattr(result, 'rogaine_score', 0) or 0),
+            result_time,
+        )
+
+    return (stage_dsq_count, result_time)
+
+
+def _sort_result_key(result, obj):
     if not result or not result.is_status_ok():
-        return (1, 999999999999)
+        return (1, 999999999999, 999999999999)
 
     result_time = result.get_result_otime().to_msec()
     if result_time <= 0:
-        return (1, 999999999999)
+        return (1, 999999999999, 999999999999)
 
-    return (0, result_time)
+    return (0,) + _result_place_key(result, obj)
 
 
 def _get_standings_settings(obj):
@@ -116,6 +134,16 @@ def _get_standings_settings(obj):
     return count_scores, min_female_count, female_prefix
 
 
+def get_tourism_standings_rules(obj=None):
+    obj = obj or race()
+    count_scores, min_female_count, female_prefix = _get_standings_settings(obj)
+    return {
+        'count_scores': count_scores,
+        'min_female_count': min_female_count,
+        'female_prefix': female_prefix,
+    }
+
+
 def _apply_team_score_rules(
     items: List[TourismTeamScoreItem],
     count_scores: int,
@@ -125,38 +153,28 @@ def _apply_team_score_rules(
     if count_scores <= 0:
         return sorted(items, key=lambda item: item.scores, reverse=True)
 
-    items = sorted(items, key=lambda item: item.scores, reverse=True)
-
-    selected = items[:count_scores]
-    rest = items[count_scores:]
-
     if min_female_count <= 0:
-        return selected
+        return sorted(items, key=lambda item: item.scores, reverse=True)[:count_scores]
 
-    female_selected = [item for item in selected if item.is_female]
-    need_female = min_female_count - len(female_selected)
+    # Места, зарезервированные под женские результаты, нельзя
+    # заполнять мужскими. Если женщин меньше минимума, команда
+    # получает меньше зачётных результатов. Например: 4 в зачёт,
+    # минимум 2 женщины, в команде 3 мужчины + 1 женщина => 3 результата.
+    sorted_items = sorted(items, key=lambda item: item.scores, reverse=True)
+    max_non_female_count = max(0, count_scores - min_female_count)
+    selected = []
+    selected_non_female_count = 0
 
-    if need_female <= 0:
-        return selected
+    for item in sorted_items:
+        if len(selected) >= count_scores:
+            break
+        if item.is_female:
+            selected.append(item)
+        elif selected_non_female_count < max_non_female_count:
+            selected.append(item)
+            selected_non_female_count += 1
 
-    female_rest = [item for item in rest if item.is_female]
-    if not female_rest:
-        # Женских результатов физически не хватает — считаем по доступным данным.
-        return selected
-
-    selected_non_female = [item for item in selected if not item.is_female]
-    selected_non_female = sorted(selected_non_female, key=lambda item: item.scores)
-
-    replacements = min(need_female, len(female_rest), len(selected_non_female))
-
-    for index in range(replacements):
-        remove_item = selected_non_female[index]
-        add_item = female_rest[index]
-
-        selected.remove(remove_item)
-        selected.append(add_item)
-
-    return sorted(selected, key=lambda item: item.scores, reverse=True)
+    return selected
 
 
 def _standing_rows_for_group(
@@ -234,14 +252,14 @@ def _build_individual_standings(obj):
     for source_group_name in sorted(grouped_results_by_source_group.keys(), key=lambda x: x.lower()):
         results = sorted(
             grouped_results_by_source_group[source_group_name],
-            key=_sort_result_key,
+            key=lambda result: _sort_result_key(result, obj),
         )
 
         combined_group_name = _combined_age_group_name(source_group_name)
         is_female = _is_female_group_name(source_group_name, female_prefix)
 
         current_place = 0
-        previous_time = None
+        previous_place_key = None
         counted = 0
 
         for result in results:
@@ -254,9 +272,10 @@ def _build_individual_standings(obj):
 
             counted += 1
 
-            if previous_time is None or result_time != previous_time:
+            place_key = _result_place_key(result, obj)
+            if previous_place_key is None or place_key != previous_place_key:
                 current_place = counted
-                previous_time = result_time
+                previous_place_key = place_key
 
             scores = get_score_by_place(scores_array, current_place)
             team_name = _team_name_from_person(result.person)
@@ -342,3 +361,82 @@ def build_tourism_overall_standings(obj=None) -> List[TourismStandingRow]:
         return _build_team_unit_standings(obj)
 
     return _build_individual_standings(obj)
+
+
+def _build_individual_territorial_standings(obj):
+    scores_array = get_tourism_scores_array(obj)
+    _count_scores, _min_female_count, female_prefix = _get_standings_settings(obj)
+    grouped_results = {}
+
+    for result in getattr(obj, 'results', []):
+        person = getattr(result, 'person', None)
+        if person:
+            source_group = _source_group_name_from_person(person)
+            grouped_results.setdefault(source_group, []).append(result)
+
+    team_items: Dict[str, List[TourismTeamScoreItem]] = {}
+    for source_group in sorted(grouped_results, key=lambda value: value.lower()):
+        results = sorted(
+            grouped_results[source_group],
+            key=lambda result: _sort_result_key(result, obj),
+        )
+        is_female = _is_female_group_name(source_group, female_prefix)
+        current_place = 0
+        previous_place_key = None
+        counted = 0
+
+        for result in results:
+            if not result.is_status_ok():
+                continue
+            result_time = result.get_result_otime().to_msec()
+            if result_time <= 0:
+                continue
+            counted += 1
+            place_key = _result_place_key(result, obj)
+            if previous_place_key is None or place_key != previous_place_key:
+                current_place = counted
+                previous_place_key = place_key
+            scores = get_score_by_place(scores_array, current_place)
+            team_name = _team_name_from_person(result.person)
+            detail = (
+                f'{result.person.full_name} [{source_group}]: '
+                f'{current_place} место, {scores} очк.'
+            )
+            team_items.setdefault(team_name, []).append(
+                TourismTeamScoreItem(scores=scores, detail=detail, is_female=is_female)
+            )
+
+    return _standing_rows_for_group('Все возрастные категории', team_items, obj)
+
+
+def _build_team_unit_territorial_standings(obj):
+    _count_scores, _min_female_count, female_prefix = _get_standings_settings(obj)
+    team_items: Dict[str, List[TourismTeamScoreItem]] = {}
+
+    for unit in calculate_tourism_team_places_and_scores(obj):
+        source_group = unit.group_name or 'Без группы'
+        team_name = unit.team_name or 'Без коллектива'
+        scores = int(getattr(unit, 'tourism_scores', 0) or 0)
+        place = getattr(unit, 'place', '')
+        place_text = f'{place} место' if place else 'без места'
+        detail = (
+            f'№{unit.number} [{source_group}]: {place_text}, '
+            f'{scores} очк. ({unit.members_text})'
+        )
+        team_items.setdefault(team_name, []).append(
+            TourismTeamScoreItem(
+                scores=scores,
+                detail=detail,
+                is_female=_is_female_group_name(source_group, female_prefix),
+            )
+        )
+
+    return _standing_rows_for_group('Все возрастные категории', team_items, obj)
+
+
+def build_tourism_territorial_standings(obj=None) -> List[TourismStandingRow]:
+    """Overall collective standings across every age category."""
+    obj = obj or race()
+    if getattr(obj, 'competition_type', '') in TOURISM_TEAM_TYPES:
+        return _build_team_unit_territorial_standings(obj)
+    return _build_individual_territorial_standings(obj)
